@@ -79,7 +79,7 @@
                 </div>
             </div>
 
-            <!-- 이벤트 안내 배너 및 링크 복사 버튼 -->
+            <!-- 이벤트 안내 배너 (상단 버튼은 기존 문구 "사이트 링크 복사" 유지) -->
             <div class="mb-6 bg-gradient-to-r from-emerald-500/20 via-teal-500/30 to-emerald-500/20 border border-emerald-400/50 rounded-2xl p-4 text-center event-banner flex flex-col md:flex-row items-center justify-between gap-3">
                 <p class="text-emerald-300 font-extrabold text-sm md:text-base flex items-center justify-center gap-2 drop-shadow">
                     <i class="fa-solid fa-gift text-yellow-300 text-lg animate-bounce"></i>
@@ -393,7 +393,7 @@
         <p class="mt-1 opacity-50">© 2026 Digital Diet Campaign.</p>
     </footer>
 
-    <!-- 수료증 완료 알림 모달 (링크 복사 버튼 추가 완료) -->
+    <!-- 수료증 완료 알림 모달 (변경 완료된 문구 적용) -->
     <div id="certAlertModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
             <i class="fa-solid fa-circle-check text-5xl text-emerald-500"></i>
@@ -403,7 +403,7 @@
             </p>
             <div class="space-y-2">
                 <button onclick="copySiteLink()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-link"></i><span>사이트 링크 복사하기</span>
+                    <i class="fa-solid fa-share-nodes"></i><span>현재 사이트를 친구에게 공유하기</span>
                 </button>
                 <button onclick="document.getElementById('certAlertModal').classList.remove('flex'); document.getElementById('certAlertModal').classList.add('hidden');" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold py-2.5 rounded-xl transition">확인했습니다</button>
             </div>
