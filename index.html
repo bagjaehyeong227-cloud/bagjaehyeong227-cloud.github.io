@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -50,6 +51,7 @@
                 </p>
             </div>
 
+            <!-- 전국 참가자 실시간 합계 대시보드 -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 relative z-10">
                 <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center space-y-1">
                     <p class="text-[11px] text-slate-300 font-medium">전국 참가자 합계 메일</p>
@@ -146,6 +148,7 @@
                 </div>
             </div>
 
+            <!-- 검색어 TOP 5 리스트 -->
             <div class="space-y-3 pt-4">
                 <h4 class="text-sm font-bold text-slate-700 flex items-center justify-between">
                     <span>🏆 고1 대상 유용 검색어 TOP 5 (클릭 시 복사!)</span>
@@ -186,7 +189,6 @@
             </div>
         </section>
 
-        <!-- 3. 계산기 및 수료증 -->
         <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
             <div class="flex items-center space-x-3">
                 <div class="bg-emerald-100 text-emerald-700 p-3 rounded-2xl">
@@ -258,7 +260,6 @@
                 </div>
             </div>
         </section>
-
     </main>
 
     <footer class="bg-white border-t border-slate-200 mt-16 py-6 text-center text-xs text-slate-400">
@@ -284,9 +285,7 @@
                 <span id="participantCountBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0명 참여</span>
             </div>
             <p class="text-xs text-slate-500">수료증을 발급받은 학생들의 학번과 이름 목록입니다.</p>
-            
             <div id="participantListContainer" class="flex-grow overflow-y-auto border border-slate-200 rounded-xl p-3 space-y-2 max-h-60 bg-slate-50 text-xs"></div>
-
             <button onclick="resetRankingData()" class="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl text-sm font-semibold transition">
                 전국 누적 데이터 및 명단 전체 초기화
             </button>
@@ -299,25 +298,24 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyC2LCb3LSDfStcLxRCb3dlmvkYMQG0Pmzk",
+            apiKey: "AIzaSyC2LCb3LSDfStcLxRcbauthDomain",
             authDomain: "digital-diet-a8511.firebaseapp.com",
-            databaseURL: "https://digital-diet-a8511-default-rtdb.asia-southeast1.firebasedatabase.app", 
             projectId: "digital-diet-a8511",
-            storageBucket: "digital-diet-a8511.firebasestorage.app",
+            storageBucket: "digital-diet-a8511.appspot.com",
             messagingSenderId: "176983599993",
             appId: "1:176983599993:web:e26131b1c54b04726f9da8",
-            measurementId: "G-4T2X1HQ05Y"
+            measurementId: "G-4T2X1HQ05Y",
+            databaseURL: "https://digital-diet-a8511-default-rtdb.firebaseio.com/"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        window.db = db;
 
-        const defaultQueries = [
+        let searchQueries = [
             { id: 1, query: "has:attachment larger:10m", title: "larger:10m (대용량 메일 찾기)", desc: "수행평가 영상, PPT, 고화질 이미지 등 용량을 많이 차지하는 파일 삭제", copies: 0 },
             { id: 2, query: "is:unread", title: "is:unread (읽지 않은 메일 모아보기)", desc: "회원가입 인증 메일이나 스팸 등 안 읽고 방치된 메일 일괄 정리", copies: 0 },
             { id: 3, query: "category:promotions", title: "category:promotions (광고/프로모션 메일 정리)", desc: "쇼핑, 게임 등 공부와 관련 없는 광고성 메일 모아서 일괄 삭제", copies: 0 },
@@ -325,30 +323,26 @@
             { id: 5, query: "unsubscribe", title: "unsubscribe 또는 수신거부 (뉴스레터 구독 해제)", desc: "과거 이벤트 응모 등으로 자동 구독된 뉴스레터 및 정보성 알림 메일 해제", copies: 0 }
         ];
 
-        onValue(ref(db, 'campaign_data'), (snapshot) => {
+        let globalStats = { totalMail: 1250, totalKakao: 820, totalCarbon: 82.80, totalStorage: 103.5 };
+        let participants = [];
+
+        onValue(ref(db, "campaign_data"), (snapshot) => {
             const data = snapshot.val();
-            if (!data) {
-                set(ref(db, 'campaign_data'), {
-                    searchQueries: defaultQueries,
-                    globalStats: { totalMail: 1250, totalKakao: 820, totalCarbon: 82.80, totalStorage: 103.5 },
-                    participants: []
-                });
-                return;
+            if (data) {
+                if (data.searchQueries) searchQueries = data.searchQueries;
+                if (data.globalStats) globalStats = data.globalStats;
+                if (data.participants) {
+                    participants = Object.values(data.participants).reverse();
+                } else {
+                    participants = [];
+                }
+                renderRanking();
+                updateGlobalStatsUI();
+                renderParticipantsList();
+            } else {
+                set(ref(db, "campaign_data"), { searchQueries, globalStats });
             }
-            window.searchQueries = data.searchQueries || defaultQueries;
-            window.globalStats = data.globalStats || { totalMail: 0, totalKakao: 0, totalCarbon: 0, totalStorage: 0 };
-            window.participants = data.participants ? Object.values(data.participants) : [];
-
-            renderRanking();
-            updateGlobalStatsUI();
-            renderParticipantsList();
         });
-    </script>
-
-    <script>
-        window.searchQueries = [];
-        window.globalStats = { totalMail: 0, totalKakao: 0, totalCarbon: 0, totalStorage: 0 };
-        window.participants = [];
 
         function updateGlobalStatsUI() {
             document.getElementById('totalGlobalMail').innerText = globalStats.totalMail.toLocaleString();
@@ -382,17 +376,6 @@
             });
         }
 
-        function copyCampaignLink() {
-            const currentUrl = window.location.href;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(currentUrl).then(() => {
-                    alert('캠페인 링크가 클립보드에 복사되었습니다!');
-                });
-            } else {
-                prompt("아래 링크를 복사하세요:", currentUrl);
-            }
-        }
-
         function renderRanking() {
             const sortedQueries = [...searchQueries].sort((a, b) => b.copies - a.copies);
             const container = document.getElementById('rankingList');
@@ -414,42 +397,39 @@
                     </div>
                     <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
                         <span class="text-xs text-slate-400">복사 횟수: <strong class="text-slate-700">${item.copies}회</strong></span>
-                        <button onclick="copyQuery('${item.query}', ${item.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow-xs flex items-center space-x-1">
+                        <button id="copy-btn-${item.id}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow-xs flex items-center space-x-1">
                             <i class="fa-solid fa-copy"></i>
                             <span>복사하기</span>
                         </button>
                     </div>
                 `;
                 container.appendChild(card);
+
+                document.getElementById(`copy-btn-${item.id}`).addEventListener('click', () => {
+                    copyQuery(item.query, item.id);
+                });
             });
         }
 
         function copyQuery(text, id) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => showToast()).catch(() => fallbackCopy(text));
+                navigator.clipboard.writeText(text).then(() => { showToast(); }).catch(() => { fallbackCopy(text); });
             } else {
                 fallbackCopy(text);
             }
 
-            const updatedQueries = searchQueries.map(q => {
-                if (q.id === id) q.copies += 1;
-                return q;
-            });
-
-            const newTotalMail = globalStats.totalMail + 5;
-            const newTotalKakao = globalStats.totalKakao;
-
-            import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then(({ ref, update }) => {
-                update(ref(window.db, 'campaign_data'), {
-                    searchQueries: updatedQueries,
-                    globalStats: {
-                        totalMail: newTotalMail,
-                        totalKakao: newTotalKakao,
-                        totalCarbon: newTotalMail * 0.04 + newTotalKakao * 0.01,
-                        totalStorage: (newTotalMail + newTotalKakao) * 0.05
-                    }
+            const targetIdx = searchQueries.findIndex(q => q.id === id);
+            if (targetIdx !== -1) {
+                searchQueries[targetIdx].copies += 1;
+                globalStats.totalMail += 5;
+                globalStats.totalCarbon = globalStats.totalMail * 0.04 + globalStats.totalKakao * 0.01;
+                globalStats.totalStorage = (globalStats.totalMail + globalStats.totalKakao) * 0.05;
+                
+                update(ref(db, "campaign_data"), {
+                    searchQueries: searchQueries,
+                    globalStats: globalStats
                 });
-            });
+            }
         }
 
         function fallbackCopy(text) {
@@ -457,23 +437,78 @@
             textarea.value = text;
             textarea.style.position = "fixed";
             document.body.appendChild(textarea);
-            textarea.focus();
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                showToast();
-            } catch (err) {
-                alert("복사에 실패했습니다.");
-            }
+            textarea.focus(); textarea.select();
+            try { document.execCommand('copy'); showToast(); } catch (err) { alert("복사에 실패했습니다."); }
             document.body.removeChild(textarea);
+        }
+
+        window.generateCertificate = function() {
+            const name = document.getElementById('userNameInput').value.trim();
+            const gNum = parseInt(document.getElementById('gmailCountInput').value) || 0;
+            const kNum = parseInt(document.getElementById('kakaoCountInput').value) || 0;
+            const total = gNum + kNum;
+
+            if (!name) {
+                alert('학번 및 이름을 입력해주세요!');
+                document.getElementById('userNameInput').focus();
+                return;
+            }
+
+            const newParticipant = {
+                name: name,
+                totalCount: total,
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            };
+
+            push(ref(db, "campaign_data/participants"), newParticipant);
+
+            globalStats.totalMail += gNum;
+            globalStats.totalKakao += kNum;
+            globalStats.totalCarbon = globalStats.totalMail * 0.04 + globalStats.totalKakao * 0.01;
+            globalStats.totalStorage = (globalStats.totalMail + globalStats.totalKakao) * 0.05;
+
+            update(ref(db, "campaign_data"), { globalStats: globalStats });
+
+            document.getElementById('certNameDisplay').innerText = name;
+            document.getElementById('certCountDisplay').innerText = `${total}개`;
+            document.getElementById('certificateCard').classList.remove('hidden');
+            document.getElementById('certificateCard').scrollIntoView({ behavior: 'smooth' });
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        };
+
+        window.resetRankingData = function() {
+            if (confirm('전국 누적 데이터 및 참가자 명단을 모두 초기화하시겠습니까?')) {
+                const cleanQueries = searchQueries.map(q => ({ ...q, copies: 0 }));
+                const cleanStats = { totalMail: 0, totalKakao: 0, totalCarbon: 0, totalStorage: 0 };
+                
+                set(ref(db, "campaign_data"), {
+                    searchQueries: cleanQueries,
+                    globalStats: cleanStats,
+                    participants: null
+                }).then(() => {
+                    alert('모든 파이어베이스 서버 데이터가 안전하게 초기화되었습니다.');
+                    closeAdminPanel();
+                });
+            }
+        };
+    </script>
+
+    <script>
+        function copyCampaignLink() {
+            const currentUrl = window.location.href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(currentUrl).then(() => {
+                    alert('캠페인 링크가 클립보드에 복사되었습니다!');
+                });
+            } else {
+                prompt("아래 링크를 복사하세요:", currentUrl);
+            }
         }
 
         function showToast() {
             const toast = document.getElementById('toast');
             toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 2000);
+            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 2000);
         }
 
         const gmailSlider = document.getElementById('gmailSlider');
@@ -500,58 +535,10 @@
             storageResult.innerText = `${mb} MB`;
         }
 
-        gmailSlider.addEventListener('input', (e) => {
-            gmailInput.value = e.target.value;
-            updateCalculator();
-        });
+        gmailSlider.addEventListener('input', (e) => { gmailInput.value = e.target.value; updateCalculator(); });
         gmailInput.addEventListener('input', updateCalculator);
-
-        kakaoSlider.addEventListener('input', (e) => {
-            kakaoInput.value = e.target.value;
-            updateCalculator();
-        });
+        kakaoSlider.addEventListener('input', (e) => { kakaoInput.value = e.target.value; updateCalculator(); });
         kakaoInput.addEventListener('input', updateCalculator);
-
-        function generateCertificate() {
-            const name = document.getElementById('userNameInput').value.trim();
-            const gNum = parseInt(gmailInput.value) || 0;
-            const kNum = parseInt(kakaoInput.value) || 0;
-            const total = gNum + kNum;
-
-            if (!name) {
-                alert('학번 및 이름을 입력해주세요!');
-                document.getElementById('userNameInput').focus();
-                return;
-            }
-
-            const newParticipant = {
-                name: name,
-                totalCount: total,
-                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            };
-
-            const updatedParticipants = [newParticipant, ...participants];
-            const newTotalMail = globalStats.totalMail + gNum;
-            const newTotalKakao = globalStats.totalKakao + kNum;
-
-            import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then(({ ref, update }) => {
-                update(ref(window.db, 'campaign_data'), {
-                    participants: updatedParticipants,
-                    globalStats: {
-                        totalMail: newTotalMail,
-                        totalKakao: newTotalKakao,
-                        totalCarbon: newTotalMail * 0.04 + newTotalKakao * 0.01,
-                        totalStorage: (newTotalMail + newTotalKakao) * 0.05
-                    }
-                }).then(() => {
-                    document.getElementById('certNameDisplay').innerText = name;
-                    document.getElementById('certCountDisplay').innerText = `${total}개`;
-                    document.getElementById('certificateCard').classList.remove('hidden');
-                    document.getElementById('certificateCard').scrollIntoView({ behavior: 'smooth' });
-                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                });
-            });
-        }
 
         function openAdminModal() {
             document.getElementById('adminModal').classList.remove('hidden');
@@ -559,40 +546,24 @@
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminPasswordInput').focus();
         }
-
         function closeAdminModal() {
             document.getElementById('adminModal').classList.remove('flex');
             document.getElementById('adminModal').classList.add('hidden');
         }
-
         function verifyAdmin() {
             const pwd = document.getElementById('adminPasswordInput').value;
             if (pwd === 'ok12345@') {
                 closeAdminModal();
-                renderParticipantsList();
                 document.getElementById('adminPanelModal').classList.remove('hidden');
                 document.getElementById('adminPanelModal').classList.add('flex');
             } else {
                 alert('비밀번호가 일치하지 않습니다.');
             }
         }
-
         function closeAdminPanel() {
             document.getElementById('adminPanelModal').classList.remove('flex');
             document.getElementById('adminPanelModal').classList.add('hidden');
         }
-
-        function resetRankingData() {
-            if (confirm('전국 누적 데이터 및 참가자 명단을 모두 초기화하시겠습니까?')) {
-                import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js").then(({ ref, remove }) => {
-                    remove(ref(window.db, 'campaign_data')).then(() => {
-                        alert('모든 데이터가 서버에서 초기화되었습니다.');
-                        closeAdminPanel();
-                    });
-                });
-            }
-        }
-
         updateCalculator();
     </script>
 </body>
