@@ -25,6 +25,15 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 눈에 띄는 이벤트 배너 강조 애니메이션 */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(52, 211, 153, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(52, 211, 153, 0.8); }
+        }
+        .event-banner {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col relative">
@@ -68,6 +77,14 @@
                     <p class="text-[10px] text-emerald-400 font-bold mb-0.5" id="deadlineDateText">오늘 오후 7시까지 마감</p>
                     <p class="text-lg md:text-xl font-mono font-bold tracking-widest" id="countdownTimer">00:00:00</p>
                 </div>
+            </div>
+
+            <!-- 🔥 요청하신 눈에 띄는 이벤트 안내 문구 추가 -->
+            <div class="mb-6 bg-gradient-to-r from-emerald-500/20 via-teal-500/30 to-emerald-500/20 border border-emerald-400/50 rounded-2xl p-4 text-center event-banner">
+                <p class="text-emerald-300 font-extrabold text-sm md:text-base flex items-center justify-center gap-2 drop-shadow">
+                    <i class="fa-solid fa-gift text-yellow-300 text-lg animate-bounce"></i>
+                    <span>🎁 캠페인 참여 완료 시, 추첨을 통해 <strong class="text-yellow-300 underline underline-offset-4">든든한 간식 꾸러미</strong>를 드립니다!</span>
+                </p>
             </div>
 
             <div class="relative z-10 space-y-3">
@@ -124,7 +141,7 @@
                         </div>
                     </div>
 
-                    <!-- STEP 3. 그래프 (Y축 최댓값 40g 적용 및 완벽한 비율 조정) -->
+                    <!-- STEP 3. 그래프 (40g 기준, 완벽한 비율) -->
                     <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
                         <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">STEP 3. 해결방안 제시</span>
                         <h3 class="font-bold text-lg text-slate-900 mt-2 mb-4">일상 속 디지털 활동별 탄소 배출량 비교</h3>
@@ -132,48 +149,43 @@
                         
                         <!-- 반응형 CSS 막대 그래프 -->
                         <div class="relative h-64 border-b border-l border-slate-300 mx-2 md:mx-6 mt-8 mb-2">
-                            <!-- 배경 가로 격자선 (Grid lines - 40g, 30g, 20g, 10g) -->
+                            <!-- 배경 가로 격자선 (40g, 30g, 20g, 10g) -->
                             <div class="absolute inset-0 flex flex-col justify-between pointer-events-none w-full h-full z-0">
-                                <div class="w-full border-t border-slate-200 flex-1"></div> <!-- 40g~30g 칸 -->
-                                <div class="w-full border-t border-slate-200 flex-1"></div> <!-- 30g~20g 칸 -->
-                                <div class="w-full border-t border-slate-200 flex-1"></div> <!-- 20g~10g 칸 -->
-                                <div class="w-full border-t border-slate-200 flex-1"></div> <!-- 10g~0g 칸 -->
+                                <div class="w-full border-t border-slate-200 flex-1"></div>
+                                <div class="w-full border-t border-slate-200 flex-1"></div>
+                                <div class="w-full border-t border-slate-200 flex-1"></div>
+                                <div class="w-full border-t border-slate-200 flex-1"></div>
                             </div>
                             
-                            <!-- Y축 라벨 (최대 40g 기준) -->
+                            <!-- Y축 라벨 -->
                             <div class="absolute -left-2 top-0 text-[10px] text-slate-400 -translate-x-full -translate-y-1/2">40g</div>
                             <div class="absolute -left-2 top-1/4 text-[10px] text-slate-400 -translate-x-full -translate-y-1/2">30g</div>
                             <div class="absolute -left-2 top-2/4 text-[10px] text-slate-400 -translate-x-full -translate-y-1/2">20g</div>
                             <div class="absolute -left-2 top-3/4 text-[10px] text-slate-400 -translate-x-full -translate-y-1/2">10g</div>
                             <div class="absolute -left-2 bottom-0 text-[10px] text-slate-400 -translate-x-full translate-y-1/2">0g</div>
 
-                            <!-- 막대들 컨테이너 (절대 위치 방식을 사용하여 찌그러짐 현상 완벽 방지) -->
+                            <!-- 막대들 컨테이너 -->
                             <div class="absolute inset-0 w-full h-full flex justify-between items-end z-10 px-2 md:px-6">
-                                <!-- Bar 1 (0.01g = 0.025%) -->
                                 <div class="w-1/5 h-full relative">
                                     <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[30px] md:max-w-[40px] bg-[#fb6a5c] rounded-t-sm shadow-sm transition-all" style="height: 0.025%; min-height: 4px;">
                                         <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-600 w-max">0.01g</span>
                                     </div>
                                 </div>
-                                <!-- Bar 2 (0.3g = 0.75%) -->
                                 <div class="w-1/5 h-full relative">
                                     <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[30px] md:max-w-[40px] bg-[#22a65a] rounded-t-sm shadow-sm transition-all" style="height: 0.75%; min-height: 8px;">
                                         <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-600 w-max">0.3g</span>
                                     </div>
                                 </div>
-                                <!-- Bar 3 (4g = 10%) -->
                                 <div class="w-1/5 h-full relative">
                                     <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[30px] md:max-w-[40px] bg-[#1ab0cd] rounded-t-sm shadow-md transition-all border border-emerald-500/20" style="height: 10%;">
                                         <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-600 w-max">4g</span>
                                     </div>
                                 </div>
-                                <!-- Bar 4 (34.5g = 86.25%) -->
                                 <div class="w-1/5 h-full relative">
                                     <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[30px] md:max-w-[40px] bg-[#cb3776] rounded-t-sm shadow-sm transition-all" style="height: 86.25%;">
                                         <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-600 w-max">34.5g</span>
                                     </div>
                                 </div>
-                                <!-- Bar 5 (36g = 90%) -->
                                 <div class="w-1/5 h-full relative">
                                     <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[30px] md:max-w-[40px] bg-[#ab86ff] rounded-t-sm shadow-sm transition-all" style="height: 90%;">
                                         <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-600 w-max">36g</span>
@@ -223,7 +235,6 @@
                 </div>
             </div>
 
-            <!-- Gmail 가이드 이미지 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
                     <span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded mb-2 inline-block">1단계</span>
@@ -237,7 +248,6 @@
                 </div>
             </div>
 
-            <!-- 검색어 TOP 5 랭킹 -->
             <div class="space-y-3 pt-4 border-t border-slate-100">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                     <h4 class="text-sm font-bold text-slate-700">🏆 실시간 유용 검색어 랭킹 (클릭 시 복사)</h4>
@@ -514,7 +524,7 @@
             });
         }
 
-        // 5. UI 업데이트 함수들 (통계 천단위 쉼표 추가)
+        // 5. UI 업데이트 함수들
         function updateGlobalStatsUI() {
             document.getElementById('totalGlobalMail').innerText = globalStats.totalMail.toLocaleString();
             document.getElementById('totalGlobalKakao').innerText = globalStats.totalKakao.toLocaleString();
@@ -583,7 +593,7 @@
             setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2000);
         }
 
-        // 6. 계산기 로직 (수정: Gmail 4g, 카카오 3g 적용)
+        // 6. 계산기 로직 (Gmail 4g, 카카오 3g)
         const gmailSlider = document.getElementById('gmailSlider');
         const gmailInput = document.getElementById('gmailCountInput');
         const kakaoSlider = document.getElementById('kakaoSlider');
@@ -595,7 +605,6 @@
             gmailSlider.value = gNum > 500 ? 500 : gNum;
             kakaoSlider.value = kNum > 500 ? 500 : kNum;
 
-            // 공식 반영: (gNum * 4) + (kNum * 3)
             document.getElementById('carbonResult').innerText = `${(gNum * 4 + kNum * 3).toLocaleString()} g`;
             document.getElementById('storageResult').innerText = `${((gNum + kNum) * 0.05).toFixed(1)} MB`;
         }
@@ -605,7 +614,7 @@
         kakaoSlider.addEventListener('input', (e) => { kakaoInput.value = e.target.value; updateCalculator(); });
         kakaoInput.addEventListener('input', updateCalculator);
 
-        // 7. 유효성 검사 및 수료증 발급 (수정: Gmail 4g, 카카오 3g 적용)
+        // 7. 유효성 검사 및 수료증 발급
         function generateCertificate() {
             if(isCampaignEnded) return;
 
@@ -630,7 +639,6 @@
                 return;
             }
 
-            // 공식 반영
             const co2Amt = gNum * 4 + kNum * 3;
             const strgAmt = ((gNum + kNum) * 0.05).toFixed(1);
             const today = new Date();
@@ -642,7 +650,7 @@
                 totalCount: total,
                 gNum: gNum,
                 kNum: kNum,
-                co2: co2Amt, // 숫자로 직접 저장
+                co2: co2Amt,
                 storage: strgAmt,
                 date: today.toLocaleDateString() + ' ' + today.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
             };
