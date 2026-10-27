@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -15,7 +14,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- 상단 헤더 -->
+    <!-- 상단 헤더 (sticky 및 z-index 고정) -->
     <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
         <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
@@ -27,6 +26,7 @@
                     <p class="text-xs text-slate-500">메일함 & 메시지 대청소의 날</p>
                 </div>
             </div>
+            <!-- 관리자 진입 버튼 -->
             <button onclick="openAdminModal()" class="text-slate-400 hover:text-emerald-600 p-2 transition" title="관리자 모드">
                 <i class="fa-solid fa-lock text-lg"></i>
             </button>
@@ -51,7 +51,7 @@
                 </p>
             </div>
 
-            <!-- 전국 참가자 실시간 합계 대시보드 -->
+            <!-- 전국 참가자 합계 대시보드 카드 그리드 -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2 relative z-10">
                 <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center space-y-1">
                     <p class="text-[11px] text-slate-300 font-medium">전국 참가자 합계 메일</p>
@@ -118,6 +118,7 @@
                 </div>
             </div>
 
+            <!-- 시각 모의 카드 (Gmail 1, 2단계) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-3">
                     <div class="flex items-center space-x-2">
@@ -154,7 +155,9 @@
                     <span>🏆 고1 대상 유용 검색어 TOP 5 (클릭 시 복사!)</span>
                     <span class="text-xs font-normal text-slate-400">사용자가 누른 복사 횟수에 따라 실시간 반영</span>
                 </h4>
-                <div id="rankingList" class="space-y-3"></div>
+                <div id="rankingList" class="space-y-3">
+                    <!-- 자바스크립트 렌더링 -->
+                </div>
             </div>
         </section>
 
@@ -170,6 +173,7 @@
                 </div>
             </div>
 
+            <!-- 시각 모의 카드 (카카오톡 1~5단계) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50 space-y-2">
                     <span class="bg-yellow-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">1~2단계</span>
@@ -189,6 +193,7 @@
             </div>
         </section>
 
+        <!-- 3. 탄소 절감 계산기 및 수료증 발급 -->
         <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
             <div class="flex items-center space-x-3">
                 <div class="bg-emerald-100 text-emerald-700 p-3 rounded-2xl">
@@ -200,8 +205,10 @@
                 </div>
             </div>
 
+            <!-- 분리된 입력 계산기 박스 -->
             <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Gmail 정리 개수 -->
                     <div class="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                         <div class="flex justify-between items-center">
                             <label class="text-xs font-bold text-slate-700">📧 Gmail 정리 개수</label>
@@ -210,6 +217,7 @@
                         <input type="range" id="gmailSlider" min="0" max="500" value="20" class="w-full accent-emerald-600 cursor-pointer">
                     </div>
 
+                    <!-- 카카오톡/문자 정리 개수 -->
                     <div class="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                         <div class="flex justify-between items-center">
                             <label class="text-xs font-bold text-slate-700">💬 카카오톡/문자 차단 개수</label>
@@ -219,6 +227,7 @@
                     </div>
                 </div>
 
+                <!-- 통합 계산 결과 요약 카드 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                     <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between shadow-xs">
                         <span class="text-sm text-slate-600">내 절감된 탄소 배출량 (CO₂)</span>
@@ -231,6 +240,7 @@
                 </div>
             </div>
 
+            <!-- 수료증 발급 입력 폼 -->
             <div class="space-y-4 pt-2">
                 <h4 class="text-sm font-bold text-slate-700">🎓 디지털 다이어트 캠페인 수료증 발급</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -246,6 +256,7 @@
                     </div>
                 </div>
 
+                <!-- 수료증 카드 출력 영역 -->
                 <div id="certificateCard" class="hidden bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-6 md:p-8 space-y-4 shadow-xl border-4 border-emerald-500/50 relative overflow-hidden">
                     <div class="absolute right-4 top-4 text-emerald-500/20 text-7xl font-bold">CERT</div>
                     <div class="text-center space-y-2 relative z-10">
@@ -260,12 +271,15 @@
                 </div>
             </div>
         </section>
+
     </main>
 
+    <!-- 푸터 -->
     <footer class="bg-white border-t border-slate-200 mt-16 py-6 text-center text-xs text-slate-400">
         <p>© 2026 디지털 다이어트 캠페인 프로젝트. All rights reserved.</p>
     </footer>
 
+    <!-- 관리자 모달창 -->
     <div id="adminModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
             <h3 class="text-lg font-bold text-slate-900">관리자 인증</h3>
@@ -278,6 +292,7 @@
         </div>
     </div>
 
+    <!-- 관리자 제어판 모달 (참가자 명단 포함) -->
     <div id="adminPanelModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
             <div class="flex justify-between items-center">
@@ -285,7 +300,12 @@
                 <span id="participantCountBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0명 참여</span>
             </div>
             <p class="text-xs text-slate-500">수료증을 발급받은 학생들의 학번과 이름 목록입니다.</p>
-            <div id="participantListContainer" class="flex-grow overflow-y-auto border border-slate-200 rounded-xl p-3 space-y-2 max-h-60 bg-slate-50 text-xs"></div>
+            
+            <!-- 참가자 명단 스크롤 영역 -->
+            <div id="participantListContainer" class="flex-grow overflow-y-auto border border-slate-200 rounded-xl p-3 space-y-2 max-h-60 bg-slate-50 text-xs">
+                <!-- 자바스크립트 렌더링 -->
+            </div>
+
             <button onclick="resetRankingData()" class="w-full bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-xl text-sm font-semibold transition">
                 전국 누적 데이터 및 명단 전체 초기화
             </button>
@@ -293,16 +313,19 @@
         </div>
     </div>
 
+    <!-- 토스트 알림 -->
     <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50">
         클립보드에 복사되었습니다!
     </div>
 
+    <!-- 파이어베이스 연동 스크립트 모듈화 및 전역 가교 연동 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, set, update, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+        // 사용자 Firebase Realtime Database 구성 파일 매핑 (image_RJvL77.png 기반 고유 키 연동)
         const firebaseConfig = {
-            apiKey: "AIzaSyC2LCb3LSDfStcLxRcbauthDomain",
+            apiKey: "AIzaYSc2LCb3LSDfStcLxRcbauthDomain",
             authDomain: "digital-diet-a8511.firebaseapp.com",
             projectId: "digital-diet-a8511",
             storageBucket: "digital-diet-a8511.appspot.com",
@@ -315,6 +338,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
+        // 초기 데이터 세팅 정의
         let searchQueries = [
             { id: 1, query: "has:attachment larger:10m", title: "larger:10m (대용량 메일 찾기)", desc: "수행평가 영상, PPT, 고화질 이미지 등 용량을 많이 차지하는 파일 삭제", copies: 0 },
             { id: 2, query: "is:unread", title: "is:unread (읽지 않은 메일 모아보기)", desc: "회원가입 인증 메일이나 스팸 등 안 읽고 방치된 메일 일괄 정리", copies: 0 },
@@ -323,9 +347,16 @@
             { id: 5, query: "unsubscribe", title: "unsubscribe 또는 수신거부 (뉴스레터 구독 해제)", desc: "과거 이벤트 응모 등으로 자동 구독된 뉴스레터 및 정보성 알림 메일 해제", copies: 0 }
         ];
 
-        let globalStats = { totalMail: 1250, totalKakao: 820, totalCarbon: 82.80, totalStorage: 103.5 };
+        let globalStats = {
+            totalMail: 1250,
+            totalKakao: 820,
+            totalCarbon: 82.80,
+            totalStorage: 103.5
+        };
+
         let participants = [];
 
+        // 실시간 Firebase 데이터 수신 리스너 정의
         onValue(ref(db, "campaign_data"), (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -340,6 +371,7 @@
                 updateGlobalStatsUI();
                 renderParticipantsList();
             } else {
+                // 최초 생성 시 기본 템플릿 적재
                 set(ref(db, "campaign_data"), { searchQueries, globalStats });
             }
         });
@@ -377,11 +409,11 @@
         }
 
         function renderRanking() {
-            const sortedQueries = [...searchQueries].sort((a, b) => b.copies - a.copies);
+            const sorted = [...searchQueries].sort((a, b) => b.copies - a.copies);
             const container = document.getElementById('rankingList');
             container.innerHTML = '';
 
-            sortedQueries.forEach((item, index) => {
+            sorted.forEach((item, index) => {
                 const rankColor = index === 0 ? 'bg-amber-100 text-amber-800 border-amber-300' : index === 1 ? 'bg-slate-100 text-slate-700 border-slate-300' : index === 2 ? 'bg-orange-50 text-orange-800 border-orange-200' : 'bg-white text-slate-600 border-slate-200';
                 
                 const card = document.createElement('div');
@@ -397,7 +429,7 @@
                     </div>
                     <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
                         <span class="text-xs text-slate-400">복사 횟수: <strong class="text-slate-700">${item.copies}회</strong></span>
-                        <button id="copy-btn-${item.id}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow-xs flex items-center space-x-1">
+                        <button id="btn-copy-${item.id}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow-xs flex items-center space-x-1">
                             <i class="fa-solid fa-copy"></i>
                             <span>복사하기</span>
                         </button>
@@ -405,7 +437,7 @@
                 `;
                 container.appendChild(card);
 
-                document.getElementById(`copy-btn-${item.id}`).addEventListener('click', () => {
+                document.getElementById(`btn-copy-${item.id}`).addEventListener('click', () => {
                     copyQuery(item.query, item.id);
                 });
             });
@@ -413,14 +445,18 @@
 
         function copyQuery(text, id) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => { showToast(); }).catch(() => { fallbackCopy(text); });
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast();
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
             } else {
                 fallbackCopy(text);
             }
 
-            const targetIdx = searchQueries.findIndex(q => q.id === id);
-            if (targetIdx !== -1) {
-                searchQueries[targetIdx].copies += 1;
+            const idx = searchQueries.findIndex(q => q.id === id);
+            if (idx !== -1) {
+                searchQueries[idx].copies += 1;
                 globalStats.totalMail += 5;
                 globalStats.totalCarbon = globalStats.totalMail * 0.04 + globalStats.totalKakao * 0.01;
                 globalStats.totalStorage = (globalStats.totalMail + globalStats.totalKakao) * 0.05;
@@ -437,11 +473,18 @@
             textarea.value = text;
             textarea.style.position = "fixed";
             document.body.appendChild(textarea);
-            textarea.focus(); textarea.select();
-            try { document.execCommand('copy'); showToast(); } catch (err) { alert("복사에 실패했습니다."); }
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast();
+            } catch (err) {
+                alert("복사에 실패했습니다.");
+            }
             document.body.removeChild(textarea);
         }
 
+        // onclick 전역 연동 가교 바인딩
         window.generateCertificate = function() {
             const name = document.getElementById('userNameInput').value.trim();
             const gNum = parseInt(document.getElementById('gmailCountInput').value) || 0;
@@ -466,7 +509,7 @@
             globalStats.totalKakao += kNum;
             globalStats.totalCarbon = globalStats.totalMail * 0.04 + globalStats.totalKakao * 0.01;
             globalStats.totalStorage = (globalStats.totalMail + globalStats.totalKakao) * 0.05;
-
+            
             update(ref(db, "campaign_data"), { globalStats: globalStats });
 
             document.getElementById('certNameDisplay').innerText = name;
@@ -486,13 +529,14 @@
                     globalStats: cleanStats,
                     participants: null
                 }).then(() => {
-                    alert('모든 파이어베이스 서버 데이터가 안전하게 초기화되었습니다.');
+                    alert('모든 파이어베이스 실시간 서버 데이터가 초기화되었습니다.');
                     closeAdminPanel();
                 });
             }
         };
     </script>
 
+    <!-- UI 상태 관리 일반 스크립트 -->
     <script>
         function copyCampaignLink() {
             const currentUrl = window.location.href;
@@ -508,7 +552,9 @@
         function showToast() {
             const toast = document.getElementById('toast');
             toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); }, 2000);
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2000);
         }
 
         const gmailSlider = document.getElementById('gmailSlider');
@@ -535,9 +581,16 @@
             storageResult.innerText = `${mb} MB`;
         }
 
-        gmailSlider.addEventListener('input', (e) => { gmailInput.value = e.target.value; updateCalculator(); });
+        gmailSlider.addEventListener('input', (e) => {
+            gmailInput.value = e.target.value;
+            updateCalculator();
+        });
         gmailInput.addEventListener('input', updateCalculator);
-        kakaoSlider.addEventListener('input', (e) => { kakaoInput.value = e.target.value; updateCalculator(); });
+
+        kakaoSlider.addEventListener('input', (e) => {
+            kakaoInput.value = e.target.value;
+            updateCalculator();
+        });
         kakaoInput.addEventListener('input', updateCalculator);
 
         function openAdminModal() {
@@ -546,10 +599,12 @@
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminPasswordInput').focus();
         }
+
         function closeAdminModal() {
             document.getElementById('adminModal').classList.remove('flex');
             document.getElementById('adminModal').classList.add('hidden');
         }
+
         function verifyAdmin() {
             const pwd = document.getElementById('adminPasswordInput').value;
             if (pwd === 'ok12345@') {
@@ -560,10 +615,12 @@
                 alert('비밀번호가 일치하지 않습니다.');
             }
         }
+
         function closeAdminPanel() {
             document.getElementById('adminPanelModal').classList.remove('flex');
             document.getElementById('adminPanelModal').classList.add('hidden');
         }
+
         updateCalculator();
     </script>
 </body>
