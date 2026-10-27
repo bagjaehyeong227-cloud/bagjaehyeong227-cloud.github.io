@@ -3,393 +3,415 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>디지털 다이어트: 메일·메시지 대청소의 날</title>
-    
-    <!-- Tailwind CSS -->
+    <title>디지털 다이어트: 메일·메시지 대청소 캠페인</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <!-- Firebase SDK -->
+    
+    <!-- 파이어베이스 SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
     <style>
-        /* 깔끔한 Noto Sans KR 폰트 적용 */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
-        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; }
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; }
         
-        /* 스크롤바 커스텀 */
+        /* 아코디언 애니메이션 */
+        .accordion-content { transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        .accordion-content.open { max-height: 2000px; opacity: 1; }
+        
+        /* 커스텀 스크롤바 */
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* 막대 그래프 애니메이션 */
-        .bar-grow { animation: growUp 1s ease-out forwards; transform-origin: bottom; }
-        @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
     </style>
 </head>
-<body class="text-slate-800 min-h-screen flex flex-col relative overflow-x-hidden">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col relative">
 
-    <!-- 종료 시 덮이는 블라인드 오버레이 (초기엔 숨김) -->
-    <div id="lockOverlay" class="fixed inset-0 bg-black/70 z-40 hidden flex-col items-center justify-center pointer-events-auto backdrop-blur-sm">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-lg text-center">캠페인 종료!</h1>
-        <p class="text-lg text-emerald-300 font-medium bg-black/50 px-6 py-2 rounded-full border border-emerald-500/30">참여해 주셔서 감사합니다.</p>
-        <p class="text-sm text-slate-300 mt-6 text-center px-4">더 이상의 데이터 입력 및 수정은 불가능합니다.<br>뒤에 표시된 전국 누적 통계 수치는 확인하실 수 있습니다.</p>
+    <!-- 종료 시 화면 덮는 오버레이 (초기엔 숨김) -->
+    <div id="campaignEndOverlay" class="fixed inset-0 bg-black/80 z-[100] hidden flex-col items-center justify-center text-white backdrop-blur-sm transition-opacity duration-1000">
+        <i class="fa-solid fa-hourglass-end text-6xl mb-4 text-emerald-400"></i>
+        <h2 class="text-4xl md:text-5xl font-extrabold mb-2">캠페인 종료!</h2>
+        <p class="text-lg text-slate-300">참여해 주셔서 감사합니다. 통계 기록은 계속 열람하실 수 있습니다.</p>
+        <button onclick="document.getElementById('campaignEndOverlay').style.display='none'" class="mt-8 px-6 py-2 border border-white/30 rounded-full hover:bg-white/10 transition">배경 통계 구경하기</button>
     </div>
 
     <!-- 상단 헤더 -->
-    <header class="bg-[#1e293b] py-4 shadow-md sticky top-0 z-50">
-        <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="bg-emerald-500 text-white w-9 h-9 flex items-center justify-center rounded-lg shadow">
-                    <i class="fa-solid fa-leaf"></i>
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <div class="bg-emerald-600 text-white p-2 rounded-xl shadow-md">
+                    <i class="fa-solid fa-leaf text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-emerald-400 text-lg md:text-xl font-bold leading-tight">디지털 다이어트 캠페인</h1>
-                    <p class="text-slate-400 text-xs mt-0.5">지구를 구하는 작은 실천, 불필요한 데이터 삭제하기</p>
+                    <h1 class="text-base md:text-lg font-bold text-slate-900">디지털 다이어트 캠페인</h1>
                 </div>
             </div>
-            <button onclick="openAdminModal()" class="text-slate-300 hover:text-white border border-slate-600 hover:border-slate-400 px-3 py-1.5 rounded text-xs md:text-sm transition-colors flex items-center gap-1.5">
-                <i class="fa-solid fa-lock"></i> <span class="hidden md:inline">관리자 로그인</span>
+            <!-- 관리자 모드 버튼 (비밀번호 노출 안 함) -->
+            <button onclick="openAdminModal()" class="text-slate-400 hover:text-emerald-600 p-2 transition" title="관리자 모드">
+                <i class="fa-solid fa-lock text-lg"></i>
             </button>
         </div>
     </header>
 
-    <!-- 메인 컨텐츠 영역 (z-30 적용으로 블라인드 시 뒤로 감) -->
-    <main class="max-w-5xl mx-auto px-4 py-8 w-full space-y-8 flex-grow relative z-30">
+    <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full space-y-10 relative z-10" id="mainContentArea">
 
-        <!-- 캠페인 헤더 & 타이머 (블라인드 되어도 보이게 z-50 설정) -->
-        <div class="bg-gradient-to-br from-emerald-900 to-[#1e293b] rounded-2xl p-6 md:p-8 shadow-lg text-center relative z-50 border border-emerald-700/50">
-            <span class="bg-emerald-500/20 text-emerald-300 text-xs font-bold px-3 py-1 rounded-full border border-emerald-500/30">지속 가능한 미래를 위한 실천</span>
-            <h2 class="text-2xl md:text-4xl font-extrabold text-white mt-4 mb-2">보이지 않는 탄소 쓰레기,<br>지금 바로 비워주세요!</h2>
-            <p class="text-emerald-100 text-sm mb-6" id="deadlineText">(캠페인 기한: 10월 28일 오후 7시까지)</p>
-            
-            <div class="inline-flex flex-col items-center bg-black/40 px-6 py-4 rounded-xl border border-white/10 backdrop-blur-sm">
-                <span class="text-xs text-slate-300 mb-1 font-medium">마감까지 남은 시간</span>
-                <div id="timerDisplay" class="text-3xl md:text-5xl font-black text-emerald-400 tracking-wider font-mono drop-shadow-md">
-                    00:00:00
+        <!-- 인트로 및 대시보드 타이머 섹션 -->
+        <section class="bg-gradient-to-br from-slate-900 via-emerald-950 to-teal-900 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+            <!-- 타이머 영역 -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-4 mb-6 gap-4">
+                <div>
+                    <span class="bg-emerald-500/30 text-emerald-300 text-xs font-semibold px-3 py-1 rounded-full border border-emerald-400/30">지속 가능한 미래를 위한 실천</span>
+                </div>
+                <div class="bg-black/40 rounded-xl px-4 py-2 border border-white/10 text-center">
+                    <p class="text-[10px] text-emerald-400 font-bold mb-0.5" id="deadlineDateText">오늘 오후 7시까지 마감</p>
+                    <p class="text-lg md:text-xl font-mono font-bold tracking-widest" id="countdownTimer">00:00:00</p>
                 </div>
             </div>
 
-            <!-- 전국 합계 통계 카드 (종료 후에도 강조되어 보임) -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
-                <div class="bg-white/10 backdrop-blur border border-white/10 rounded-xl p-4 text-center">
-                    <p class="text-[11px] text-slate-300 mb-1">전국 합계 메일</p>
-                    <p id="totalGlobalMail" class="text-xl md:text-2xl font-bold text-emerald-300">0</p>
+            <div class="relative z-10 space-y-3">
+                <h2 class="text-2xl md:text-3xl font-extrabold leading-snug">
+                    보이지 않는 탄소 쓰레기,<br>지금 바로 비워주세요!
+                </h2>
+                <p class="text-slate-300 text-xs md:text-sm leading-relaxed max-w-2xl">
+                    불필요하게 저장된 데이터 서버 작동에는 많은 전기 소모가 일어납니다. 메일 1통 삭제 시 약 4g의 CO2 감소 효과가 있습니다. 캠페인은 <strong class="text-white" id="deadlineDescText">오늘 오후 7시까지</strong> 진행됩니다!
+                </p>
+            </div>
+
+            <!-- 대시보드 -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6 relative z-10">
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center">
+                    <p class="text-[11px] text-slate-300 font-medium mb-1">전국 합계 메일</p>
+                    <p id="totalGlobalMail" class="text-xl md:text-2xl font-extrabold text-emerald-400">0</p>
                 </div>
-                <div class="bg-white/10 backdrop-blur border border-white/10 rounded-xl p-4 text-center">
-                    <p class="text-[11px] text-slate-300 mb-1">전국 합계 메시지</p>
-                    <p id="totalGlobalKakao" class="text-xl md:text-2xl font-bold text-emerald-300">0</p>
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center">
+                    <p class="text-[11px] text-slate-300 font-medium mb-1">전국 합계 메시지</p>
+                    <p id="totalGlobalKakao" class="text-xl md:text-2xl font-extrabold text-teal-400">0</p>
                 </div>
-                <div class="bg-white/10 backdrop-blur border border-white/10 rounded-xl p-4 text-center">
-                    <p class="text-[11px] text-slate-300 mb-1">누적 CO₂ 절감량</p>
-                    <p id="totalGlobalCarbon" class="text-xl md:text-2xl font-bold text-amber-300">0 g</p>
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center">
+                    <p class="text-[11px] text-slate-300 font-medium mb-1">누적 CO₂ 절감량</p>
+                    <p id="totalGlobalCarbon" class="text-xl md:text-2xl font-extrabold text-emerald-300">0 g</p>
                 </div>
-                <div class="bg-white/10 backdrop-blur border border-white/10 rounded-xl p-4 text-center">
-                    <p class="text-[11px] text-slate-300 mb-1">확보된 저장 공간</p>
-                    <p id="totalGlobalStorage" class="text-xl md:text-2xl font-bold text-blue-300">0 MB</p>
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 text-center">
+                    <p class="text-[11px] text-slate-300 font-medium mb-1">확보된 저장 공간</p>
+                    <p id="totalGlobalStorage" class="text-xl md:text-2xl font-extrabold text-teal-300">0 MB</p>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- 1. 스토리텔링 아코디언 도입부 -->
-        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <button onclick="toggleIntro()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 p-5 flex justify-between items-center transition-colors font-bold text-lg md:text-xl">
-                <span>지구를 구하는 1분의 기적 🌍 <span class="text-sm font-normal text-emerald-600 ml-2">(캠페인 배경 자세히 보기)</span></span>
-                <i id="introIcon" class="fa-solid fa-chevron-down transition-transform duration-300"></i>
+        <!-- 아코디언: 캠페인 배경 및 그래프 -->
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <button onclick="toggleAccordion()" class="w-full bg-emerald-50 hover:bg-emerald-100 transition p-4 flex justify-between items-center text-left">
+                <span class="font-bold text-emerald-800 text-sm md:text-base">우리가 몰랐던 스마트폰의 배신, 숨겨진 진실 확인하기 👀</span>
+                <i id="accordionIcon" class="fa-solid fa-chevron-down text-emerald-600 transition-transform duration-300"></i>
             </button>
             
-            <div id="introContent" class="hidden p-6 md:p-8 space-y-10 border-t border-emerald-100">
-                
-                <div class="space-y-3">
-                    <h3 class="text-lg font-bold text-slate-900 border-l-4 border-red-500 pl-3">STEP 1. 보이지 않는 탄소의 역습</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-lg">
-                        기후 위기를 막기 위해 가장 시급한 과제는 '탄소 배출'을 줄이는 것입니다. 공장의 매연뿐만 아니라 우리가 매일 손에서 놓지 않는 <strong>'디지털 활동'</strong> 과정에서도 막대한 탄소가 발생하고 있습니다.
-                    </p>
-                </div>
-
-                <div class="space-y-3">
-                    <h3 class="text-lg font-bold text-slate-900 border-l-4 border-amber-500 pl-3">STEP 2. 인터넷 세상이 전기를 먹는 이유</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-lg">
-                        데이터가 보관되는 거대한 '데이터센터'는 24시간 열을 내며 엄청난 전기를 소모합니다. IEA(국제에너지기구)에 따르면 2024년 데이터센터 전력 사용량은 약 415TWh(전 세계 전력의 1.5%)에 달하며, 디지털 탄소 배출 비중은 꾸준히 증가해 전 세계 배출량의 약 3~4%를 차지하고 있습니다.
-                    </p>
-                </div>
-
-                <div class="space-y-4">
-                    <h3 class="text-lg font-bold text-slate-900 border-l-4 border-emerald-500 pl-3">STEP 3. 일상 속 탄소 배출량, 얼마나 될까?</h3>
-                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                        <p class="text-xs text-slate-500 mb-4 text-center font-medium">단위: g CO₂e (데이터센터 및 네트워크 통신 등 간접 배출량 포함)</p>
-                        <!-- CSS 반응형 막대 그래프 -->
-                        <div class="flex items-end justify-around h-48 md:h-56 border-b-2 border-slate-300 pb-2 px-2 relative">
-                            <!-- y축 눈금선 (장식용) -->
-                            <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                                <div class="border-t border-slate-100 w-full h-0"></div>
-                                <div class="border-t border-slate-100 w-full h-0"></div>
-                                <div class="border-t border-slate-100 w-full h-0"></div>
-                                <div class="border-t border-slate-100 w-full h-0"></div>
-                            </div>
-                            <!-- 그래프 막대들 -->
-                            <div class="flex flex-col items-center z-10 w-1/6 group">
-                                <span class="text-[10px] font-bold text-slate-600 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">0.01g</span>
-                                <div class="w-full max-w-[30px] bg-slate-400 rounded-t-sm h-[2%] bar-grow"></div>
-                                <span class="text-[10px] text-center mt-2 leading-tight">메시지<br>1건</span>
-                            </div>
-                            <div class="flex flex-col items-center z-10 w-1/6 group">
-                                <span class="text-[10px] font-bold text-slate-600 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">0.3g</span>
-                                <div class="w-full max-w-[30px] bg-indigo-400 rounded-t-sm h-[5%] bar-grow" style="animation-delay: 0.1s;"></div>
-                                <span class="text-[10px] text-center mt-2 leading-tight">스팸<br>메일</span>
-                            </div>
-                            <div class="flex flex-col items-center z-10 w-1/6 group relative">
-                                <span class="absolute -top-6 text-[11px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">4g</span>
-                                <div class="w-full max-w-[30px] bg-emerald-500 rounded-t-sm h-[15%] bar-grow" style="animation-delay: 0.2s;"></div>
-                                <span class="text-[10px] text-center mt-2 font-bold text-emerald-700 leading-tight">일반<br>이메일</span>
-                            </div>
-                            <div class="flex flex-col items-center z-10 w-1/6 group">
-                                <span class="text-[10px] font-bold text-slate-600 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">34.5g</span>
-                                <div class="w-full max-w-[30px] bg-amber-400 rounded-t-sm h-[40%] bar-grow" style="animation-delay: 0.3s;"></div>
-                                <span class="text-[10px] text-center mt-2 leading-tight">사진첨부<br>이메일</span>
-                            </div>
-                            <div class="flex flex-col items-center z-10 w-1/6 group">
-                                <span class="text-[10px] font-bold text-slate-600 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">575g</span>
-                                <div class="w-full max-w-[30px] bg-red-400 rounded-t-sm h-[100%] bar-grow" style="animation-delay: 0.4s;"></div>
-                                <span class="text-[10px] text-center mt-2 leading-tight">화상회의<br>(1시간)</span>
-                            </div>
+            <div id="accordionContent" class="accordion-content bg-white px-6">
+                <div class="py-6 space-y-8 text-sm text-slate-700 leading-relaxed">
+                    
+                    <!-- STEP 1, 2 -->
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">STEP 1. 문제 제기</span>
+                            <h3 class="font-bold text-lg text-slate-900 mt-2">뜨거워지는 지구, 범인은 눈에 보이지 않는 '탄소'입니다.</h3>
+                            <p class="mt-1">기후 위기를 막기 위해 가장 먼저 해결해야 할 과제는 '탄소 배출'입니다. 공장 매연뿐만 아니라, 우리가 매일 쓰는 '디지털 활동' 역시 데이터센터를 24시간 가동시키며 막대한 탄소를 뿜어냅니다.</p>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">STEP 2. 원인 분석</span>
+                            <h3 class="font-bold text-lg text-slate-900 mt-2">인터넷 세상도 전기를 먹고 탄소를 뿜어냅니다.</h3>
+                            <p class="mt-1">2024년 기준 글로벌 전력의 1.5%(약 415TWh)를 쓰는 데이터센터는 이산화탄소를 연간 1억 8,000만 톤 배출합니다. 과거 1% 수준이었던 디지털 탄소 배출 비중은 최근 전 세계 배출량의 약 3~4%까지 급증했습니다.</p>
                         </div>
                     </div>
-                </div>
 
-                <div class="space-y-3">
-                    <h3 class="text-lg font-bold text-slate-900 border-l-4 border-blue-500 pl-3">STEP 4. 지금 바로 시작하는 '메일함 비우기'</h3>
-                    <p class="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-lg">
-                        우리가 가장 쉽고 확실하게 탄소를 줄일 수 있는 방법은 이메일 정리입니다. 불필요한 <strong>메일함 1GB만 삭제해도 이산화탄소 약 14.9kg을 감축</strong>하는 효과가 있습니다. 전 국민이 100통씩만 지워도 수십만 그루의 나무를 심는 것과 같습니다!
-                    </p>
+                    <!-- STEP 3. 그래프 -->
+                    <div class="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">STEP 3. 해결방안 제시</span>
+                        <h3 class="font-bold text-lg text-slate-900 mt-2 mb-4">일상 속 디지털 활동별 탄소 배출량 비교</h3>
+                        <p class="text-xs text-slate-500 mb-4">* 단위: g CO₂e (데이터센터 및 네트워크 통신 등 간접 배출량 포함)</p>
+                        
+                        <!-- 반응형 CSS 막대 그래프 -->
+                        <div class="relative h-48 border-b border-l border-slate-300 flex items-end justify-between px-2 md:px-6 pt-4 text-center">
+                            <!-- Y축 라벨 -->
+                            <div class="absolute -left-2 top-0 text-[10px] text-slate-400 -translate-x-full">600g</div>
+                            <div class="absolute -left-2 top-1/2 text-[10px] text-slate-400 -translate-x-full -translate-y-1/2">300g</div>
+                            <div class="absolute -left-2 bottom-0 text-[10px] text-slate-400 -translate-x-full">0g</div>
+
+                            <!-- 막대들 (575g 기준 높이 비율) -->
+                            <div class="flex flex-col items-center w-1/6">
+                                <span class="text-[10px] font-bold text-slate-600 mb-1">0.01g</span>
+                                <div class="w-full max-w-[30px] bg-slate-300 rounded-t-sm" style="height: 2%;"></div>
+                            </div>
+                            <div class="flex flex-col items-center w-1/6">
+                                <span class="text-[10px] font-bold text-slate-600 mb-1">0.3g</span>
+                                <div class="w-full max-w-[30px] bg-purple-400 rounded-t-sm" style="height: 3%;"></div>
+                            </div>
+                            <div class="flex flex-col items-center w-1/6 relative group">
+                                <span class="text-[10px] font-bold text-emerald-600 mb-1">4g</span>
+                                <div class="w-full max-w-[30px] bg-emerald-500 rounded-t-sm shadow-md" style="height: 6%;"></div>
+                            </div>
+                            <div class="flex flex-col items-center w-1/6">
+                                <span class="text-[10px] font-bold text-slate-600 mb-1">34.5g</span>
+                                <div class="w-full max-w-[30px] bg-amber-400 rounded-t-sm" style="height: 15%;"></div>
+                            </div>
+                            <div class="flex flex-col items-center w-1/6">
+                                <span class="text-[10px] font-bold text-slate-600 mb-1">36g</span>
+                                <div class="w-full max-w-[30px] bg-red-400 rounded-t-sm" style="height: 16%;"></div>
+                            </div>
+                            <div class="flex flex-col items-center w-1/6">
+                                <span class="text-[10px] font-bold text-slate-600 mb-1">575g</span>
+                                <div class="w-full max-w-[30px] bg-blue-500 rounded-t-sm" style="height: 95%;"></div>
+                            </div>
+                        </div>
+                        <!-- X축 라벨 -->
+                        <div class="flex justify-between px-2 md:px-6 mt-2 text-[9px] md:text-[11px] text-slate-600 font-medium">
+                            <div class="w-1/6 text-center">메시지<br>1건</div>
+                            <div class="w-1/6 text-center">스팸<br>메일</div>
+                            <div class="w-1/6 text-center text-emerald-600 font-bold">일반<br>이메일</div>
+                            <div class="w-1/6 text-center">사진첨부<br>메일</div>
+                            <div class="w-1/6 text-center">동영상<br>(1시간)</div>
+                            <div class="w-1/6 text-center">화상회의<br>(1시간)</div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4 -->
+                    <div>
+                        <span class="text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded">STEP 4. 행동 촉구</span>
+                        <h3 class="font-bold text-lg text-slate-900 mt-2">지금 바로 시작하는 탄소 다이어트: '메일함 비우기'</h3>
+                        <p class="mt-1">메일함 1GB만 삭제해도 이산화탄소 배출을 약 14.9kg 줄일 수 있습니다. 대한민국 전 국민이 100통씩만 지운다면 수십만 그루의 소나무를 새로 심는 것과 맞먹는 약 2만 톤의 탄소가 절감됩니다. 지금 바로 실천해 보세요!</p>
+                    </div>
+
                 </div>
             </div>
         </section>
 
-        <!-- 활동 캡처 필수 경고 박스 (피드백 반영) -->
-        <div class="bg-red-50 border-2 border-red-500 rounded-xl p-5 shadow-sm flex items-start gap-4 animate-pulse">
-            <i class="fa-solid fa-triangle-exclamation text-3xl text-red-500 mt-1"></i>
+        <!-- 경고 알림 박스 (구글 폼 안내) -->
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm flex items-start space-x-3">
+            <i class="fa-solid fa-triangle-exclamation text-red-500 text-lg mt-0.5"></i>
             <div>
-                <h3 class="text-base font-extrabold text-red-700">🚨 필수 주의사항: 스크린샷 촬영 안내</h3>
-                <p class="text-sm text-red-600 mt-1 font-medium leading-relaxed">
-                    본 캠페인 이벤트 참여를 인정받으려면, 아래 <strong>[메일 및 메시지 정리 활동]을 진행하는 화면(정리 전/후)을 반드시 캡처(스크린샷)</strong>하셔야 합니다. 캡처한 이미지는 수료증 발급 후 안내되는 구글 폼에 제출해 주세요!
-                </p>
+                <h4 class="text-sm font-bold text-red-700">필수 주의사항</h4>
+                <p class="text-xs text-red-600 mt-1">캠페인 활동을 진행하실 때 반드시 <strong>메일함 및 카카오톡 대청소 전/후 화면을 스크린샷</strong>으로 찍어두세요! 발급받은 수료증과 함께 구글 폼에 제출하셔야 캠페인 참여가 인정됩니다.</p>
             </div>
         </div>
 
-        <!-- 2. Gmail 대청소 가이드 -->
-        <section class="bg-white rounded-2xl p-6 shadow-sm border-t-4 border-red-500">
-            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-5">
-                <i class="fa-brands fa-google text-red-500"></i> 구글 Gmail 대청소 시각 가이드
-            </h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded mb-3 inline-block">1단계: 명령어 검색</span>
-                    <img src="https://placehold.co/600x250/f1f5f9/475569?text=Gmail+Step+1:++Search+Bar" alt="검색창" class="w-full rounded border border-slate-300 mb-2">
-                    <p class="text-xs text-slate-600">명령어를 복사하여 메일 상단 검색창에 붙여넣고 검색합니다.</p>
+        <!-- 1. Gmail 가이드 및 랭킹 -->
+        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
+            <div class="flex items-center space-x-3">
+                <div class="bg-red-100 text-red-600 p-3 rounded-2xl">
+                    <i class="fa-brands fa-google text-2xl"></i>
                 </div>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded mb-3 inline-block">2단계: 일괄 삭제</span>
-                    <img src="https://placehold.co/600x250/f1f5f9/475569?text=Gmail+Step+2:++Select+All+%26+Delete" alt="일괄 삭제" class="w-full rounded border border-slate-300 mb-2">
-                    <p class="text-xs text-slate-600">전체 선택 체크박스를 누른 뒤, 휴지통 모양 아이콘을 클릭해 비웁니다.</p>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900">구글 Gmail 대청소 가이드</h3>
+                    <p class="text-xs text-slate-500">메일함 검색부터 일괄 삭제까지 단계별 가이드</p>
                 </div>
             </div>
 
-            <!-- 검색어 리스트 및 복사 버튼 -->
-            <div class="border-t border-slate-100 pt-5">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-                    <h4 class="text-sm font-bold text-slate-800">🏆 유용 검색어 TOP 5 (클릭 시 복사!)</h4>
-                    <span class="bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 rounded">
-                        총 복사 횟수: <span id="totalCopyCountDisplay" class="text-red-600">0</span>회
-                    </span>
+            <!-- Gmail 가이드 이미지 교체 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
+                    <span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded mb-2 inline-block">1단계</span>
+                    <p class="text-xs font-bold text-slate-800 mb-2">명령어 복사 후 검색창에 입력</p>
+                    <img src="KakaoTalk_261027_193940_01_3.jpg" alt="Gmail 검색" class="w-full rounded-lg border border-slate-200 shadow-sm object-cover">
                 </div>
-                
-                <div id="rankingList" class="space-y-2 mb-2">
-                    <!-- JS 렌더링 -->
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
+                    <span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded mb-2 inline-block">2~3단계</span>
+                    <p class="text-xs font-bold text-slate-800 mb-2">전체 선택 체크 및 휴지통 삭제</p>
+                    <img src="KakaoTalk_261027_193940_11_3.jpg" alt="Gmail 삭제" class="w-full rounded-lg border border-slate-200 shadow-sm object-cover">
                 </div>
-                <p class="text-[11px] text-slate-400 text-center mt-3 font-medium">
-                    ※ 복사 횟수는 전국 단위 통계 자료로 활용됩니다. 무분별한 연속 클릭은 자제해 주세요.
-                </p>
+            </div>
+
+            <!-- 검색어 TOP 5 랭킹 -->
+            <div class="space-y-3 pt-4 border-t border-slate-100">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                    <h4 class="text-sm font-bold text-slate-700">🏆 실시간 유용 검색어 랭킹 (클릭 시 복사)</h4>
+                    <p class="text-[10px] text-slate-400">※ 복사 횟수는 통계자료로 활용되니 무분별한 연타를 금지합니다.</p>
+                </div>
+                <div id="rankingList" class="space-y-3">
+                    <!-- JS 랜더링 -->
+                </div>
             </div>
         </section>
 
-        <!-- 3. 카카오톡 대청소 가이드 -->
-        <section class="bg-white rounded-2xl p-6 shadow-sm border-t-4 border-yellow-400">
-            <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-5">
-                <i class="fa-solid fa-comment text-yellow-500"></i> 카카오톡 채널 차단 가이드
-            </h3>
-            
+        <!-- 2. 카카오톡 채널 가이드 -->
+        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
+            <div class="flex items-center space-x-3">
+                <div class="bg-yellow-100 text-yellow-700 p-3 rounded-2xl">
+                    <i class="fa-solid fa-comment text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900">카카오톡 채널 차단 가이드</h3>
+                    <p class="text-xs text-slate-500">안 쓰는 광고 채널 영구 차단하기</p>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded mb-3 inline-block">1단계</span>
-                    <img src="https://placehold.co/400x300/f1f5f9/475569?text=1.+Go+to+Channel+Tab" alt="채널 진입" class="w-full rounded border border-slate-300 mb-2">
-                    <p class="text-xs text-slate-600">친구 탭 ➔ 중간의 [채널] 아이콘 터치</p>
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
+                    <span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2 inline-block">1~2단계</span>
+                    <p class="text-xs font-bold text-slate-800 mb-2">친구 탭 ➔ 채널 진입</p>
+                    <img src="KakaoTalk_261027_193940_21_3.jpg" alt="카카오 진입" class="w-full rounded-lg border border-slate-200 shadow-sm object-cover">
                 </div>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded mb-3 inline-block">2단계</span>
-                    <img src="https://placehold.co/400x300/f1f5f9/475569?text=2.+Long+Press+Channel" alt="꾹 누르기" class="w-full rounded border border-slate-300 mb-2">
-                    <p class="text-xs text-slate-600">차단할 채널을 찾아 <strong>길게 꾹</strong> 누르기</p>
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
+                    <span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2 inline-block">3~4단계</span>
+                    <p class="text-xs font-bold text-slate-800 mb-2">채널 목록에서 꾹 누르기</p>
+                    <img src="KakaoTalk_261027_193940_31_3.jpg" alt="카카오 꾹" class="w-full rounded-lg border border-slate-200 shadow-sm object-cover">
                 </div>
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded mb-3 inline-block">3단계</span>
-                    <img src="https://placehold.co/400x300/f1f5f9/475569?text=3.+Click+Block" alt="차단 완료" class="w-full rounded border border-slate-300 mb-2">
-                    <p class="text-xs text-slate-600">팝업 메뉴에서 <strong>[차단]</strong> 터치 완료</p>
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50">
+                    <span class="bg-yellow-500 text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2 inline-block">5단계</span>
+                    <p class="text-xs font-bold text-slate-800 mb-2">차단 클릭하여 완료</p>
+                    <img src="KakaoTalk_261027_193940_41_3.jpg" alt="카카오 차단" class="w-full rounded-lg border border-slate-200 shadow-sm object-cover">
                 </div>
             </div>
         </section>
 
-        <!-- 4. 계산기 및 수료증 -->
-        <section class="bg-white rounded-2xl p-6 shadow-sm border-t-4 border-emerald-500 mb-8">
-            <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2 mb-6">
-                <i class="fa-solid fa-award text-emerald-500"></i> 절감 계산기 & 수료증 발급
-            </h3>
+        <!-- 3. 계산기 및 수료증 발급 -->
+        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-100 text-emerald-700 p-3 rounded-2xl">
+                    <i class="fa-solid fa-award text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900">절감 계산기 & 수료증 발급</h3>
+                    <p class="text-xs text-slate-500">대청소한 개수를 입력하고 수료증을 받으세요.</p>
+                </div>
+            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- 슬라이더 영역 -->
-                <div class="space-y-6">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <div class="flex justify-between items-center mb-3">
+            <!-- 계산기 -->
+            <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-1">
                             <label class="text-sm font-bold text-slate-700">📧 Gmail 정리 개수</label>
-                            <span class="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-1 rounded">숫자 직접 입력 가능</span>
+                            <input type="number" id="gmailCountInput" value="20" min="0" class="w-20 text-center font-bold py-1 px-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
                         </div>
-                        <div class="flex items-center gap-3">
-                            <input type="range" id="gmailSlider" min="0" max="1000" value="0" class="flex-grow accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                            <input type="number" id="gmailCountInput" value="0" min="0" class="w-20 font-bold border border-slate-300 rounded px-2 py-1.5 text-center text-sm focus:outline-none focus:border-emerald-500">
-                        </div>
+                        <p class="text-[10px] text-emerald-600 text-right mb-2">※ 박스에 숫자를 직접 입력 가능합니다.</p>
+                        <input type="range" id="gmailSlider" min="0" max="500" value="20" class="w-full accent-emerald-600 cursor-pointer">
                     </div>
 
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <div class="flex justify-between items-center mb-3">
+                    <div class="space-y-2 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-1">
                             <label class="text-sm font-bold text-slate-700">💬 카카오톡 차단 개수</label>
-                            <span class="text-[10px] text-teal-600 font-semibold bg-teal-50 px-2 py-1 rounded">숫자 직접 입력 가능</span>
+                            <input type="number" id="kakaoCountInput" value="10" min="0" class="w-20 text-center font-bold py-1 px-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50">
                         </div>
-                        <div class="flex items-center gap-3">
-                            <input type="range" id="kakaoSlider" min="0" max="1000" value="0" class="flex-grow accent-teal-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                            <input type="number" id="kakaoCountInput" value="0" min="0" class="w-20 font-bold border border-slate-300 rounded px-2 py-1.5 text-center text-sm focus:outline-none focus:border-teal-500">
-                        </div>
-                    </div>
-
-                    <div class="bg-[#1e293b] text-white p-4 rounded-xl flex justify-between items-center shadow-inner">
-                        <span class="text-sm font-medium">예상 탄소 절감량 (CO₂)</span>
-                        <span class="text-2xl font-bold text-emerald-400" id="carbonResult">0.00 g</span>
+                        <p class="text-[10px] text-teal-600 text-right mb-2">※ 박스에 숫자를 직접 입력 가능합니다.</p>
+                        <input type="range" id="kakaoSlider" min="0" max="500" value="10" class="w-full accent-teal-600 cursor-pointer">
                     </div>
                 </div>
 
-                <!-- 수료증 폼 영역 -->
-                <div class="flex flex-col justify-end">
-                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col justify-between">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-800 mb-2">학번 및 이름 입력</label>
-                            <input type="text" id="userNameInput" placeholder="예: 10410 박재형" class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-                                ※ 입력하신 기록은 전국 누적 통계에 합산됩니다.<br>
-                                ※ 장난스러운 이름(비속어 등)은 발급이 차단됩니다.
-                            </p>
-                        </div>
-                        <button onclick="generateCertificate()" class="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-lg transition-colors shadow flex justify-center items-center gap-2">
-                            <i class="fa-solid fa-stamp"></i> 공식 수료증 발급하기
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex justify-between shadow-sm">
+                        <span class="text-sm text-slate-600">탄소 절감량 (CO₂)</span>
+                        <span id="carbonResult" class="text-lg font-extrabold text-emerald-600">0.30 g</span>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex justify-between shadow-sm">
+                        <span class="text-sm text-slate-600">스마트폰/서버 용량</span>
+                        <span id="storageResult" class="text-lg font-extrabold text-teal-600">1.5 MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 수료증 폼 -->
+            <div class="space-y-4 pt-2">
+                <h4 class="text-sm font-bold text-slate-700">🎓 캠페인 수료증 발급</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1">학번 및 이름 입력</label>
+                        <input type="text" id="userNameInput" placeholder="예: 10410 박재형" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="generateCertificate()" id="btnGenerateCert" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition shadow-md flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-award"></i><span>수료증 발급하기</span>
                         </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- 발급된 수료증 출력 영역 -->
-            <div id="certificateCard" class="hidden mt-10 p-1 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-2xl max-w-2xl mx-auto shadow-xl">
-                <div class="bg-white rounded-xl p-8 md:p-10 text-center relative overflow-hidden">
-                    <div class="absolute inset-0 bg-emerald-50/50"></div>
+                <!-- 수료증 출력 영역 -->
+                <div id="certificateCard" class="hidden mt-6 bg-white border-4 border-emerald-500 p-8 rounded-2xl relative shadow-lg text-center overflow-hidden">
+                    <div class="absolute inset-0 bg-emerald-50 opacity-30"></div>
                     <div class="relative z-10 space-y-4">
-                        <p class="text-emerald-600 font-extrabold text-sm tracking-widest uppercase">Certificate of Completion</p>
-                        <h3 class="text-3xl font-black text-slate-800">디지털 탄소 다이어트 수료증</h3>
-                        <div class="w-16 h-1 bg-emerald-500 mx-auto my-5"></div>
-                        <p class="text-2xl font-bold text-slate-800 mt-4" id="certNameDisplay">홍길동</p>
-                        <p class="text-slate-600 text-sm leading-relaxed mt-4">
-                            위 사람은 디지털 다이어트 캠페인에 적극 참여하여<br>
-                            불필요한 데이터 쓰레기를 비워내고 지구 환경 보호에 기여하였기에<br>이 수료증을 수여합니다.
-                        </p>
+                        <p class="text-emerald-600 font-bold text-xs tracking-widest">DIGITAL DIET CERTIFICATE</p>
+                        <h3 class="text-2xl font-extrabold text-slate-800">디지털 탄소 다이어트 수료증</h3>
+                        <div class="w-12 h-1 bg-emerald-500 mx-auto my-3"></div>
+                        <p class="text-xl font-bold text-slate-900" id="certNameDisplay"></p>
+                        <p class="text-sm text-slate-600 leading-relaxed">위 사람은 지구 환경을 위한 디지털 다이어트 캠페인에<br>적극 참여하였기에 이 수료증을 수여합니다.</p>
                         
-                        <!-- 세부 절감 내역 표시 -->
-                        <div class="mt-6 bg-slate-50 border border-slate-200 p-4 rounded-lg grid grid-cols-3 gap-2 divide-x divide-slate-200 text-xs">
-                            <div>
-                                <p class="text-slate-400 mb-1">메일 정리</p>
-                                <p class="font-bold text-slate-800 text-sm" id="certGmailCount">0개</p>
-                            </div>
-                            <div>
-                                <p class="text-slate-400 mb-1">메시지 차단</p>
-                                <p class="font-bold text-slate-800 text-sm" id="certKakaoCount">0개</p>
-                            </div>
-                            <div>
-                                <p class="text-slate-400 mb-1">CO₂ 감축</p>
-                                <p class="font-bold text-emerald-600 text-sm" id="certCo2Count">0g</p>
-                            </div>
+                        <!-- 세부 실적 표시 -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 inline-block mt-4 text-left min-w-[200px]">
+                            <p class="text-xs text-slate-600 border-b border-slate-200 pb-1 mb-1">📧 Gmail 정리: <strong id="certGmailDisplay" class="text-slate-800">0개</strong></p>
+                            <p class="text-xs text-slate-600 border-b border-slate-200 pb-1 mb-1">💬 카카오 차단: <strong id="certKakaoDisplay" class="text-slate-800">0개</strong></p>
+                            <p class="text-xs text-emerald-600 font-bold">🌱 CO₂ 절감량: <span id="certCo2Display">0.00g</span></p>
                         </div>
                         
-                        <p class="text-slate-400 text-sm mt-6 font-medium" id="certDateDisplay">2026. 10. 28</p>
+                        <p class="text-xs text-slate-400 mt-4" id="certDateDisplay"></p>
                     </div>
                 </div>
             </div>
-
-            <!-- 구글 폼 제출 버튼 (수료증 발급 후 나타남) -->
-            <div id="googleFormSection" class="hidden mt-6 text-center animate-bounce">
-                <i class="fa-solid fa-arrow-down text-emerald-500 text-2xl mb-2"></i>
-                <a href="https://forms.gle/placeholder" target="_blank" class="block w-full max-w-md mx-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors">
-                    📝 캡처 완료! 구글 폼으로 최종 제출하기 ➔
+            
+            <!-- 구글폼 제출 버튼 -->
+            <div class="pt-6 border-t border-slate-100 text-center">
+                <p class="text-xs font-bold text-slate-600 mb-3">수료증 및 전/후 스크린샷 캡처가 완료되었다면 제출해주세요!</p>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSfmtQvG58QqKmEYUmPI3cTtyPEqf68TsIPTSkjP8EUjaevlQA/viewform?usp=dialog" target="_blank" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition shadow-md">
+                    <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>최종 캠페인 이벤트 구글폼 제출
                 </a>
             </div>
-
         </section>
+
     </main>
 
-    <footer class="bg-[#1e293b] py-8 text-center text-slate-400 text-xs mt-auto relative z-30">
-        <p>© 2026 디지털 다이어트 캠페인 이벤트. All rights reserved.</p>
-        <p class="mt-2 text-emerald-500 font-bold">본 캠페인은 2026년 10월 28일 오후 7시까지 진행되며, 이후 모든 참여가 마감됩니다.</p>
+    <!-- 하단 마감 안내 푸터 -->
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs relative z-10">
+        <p>본 캠페인은 <strong class="text-white">2026년 10월 28일 오후 7시</strong>까지 진행되며, 이후 참여가 마감됩니다.</p>
+        <p class="mt-1 opacity-50">© 2026 Digital Diet Campaign.</p>
     </footer>
 
-    <!-- 관리자 인증 모달 -->
+    <!-- 수료증 완료 알림 모달 -->
+    <div id="certAlertModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
+            <i class="fa-solid fa-circle-check text-5xl text-emerald-500"></i>
+            <h3 class="text-lg font-bold text-slate-900">수료증 발급 완료!</h3>
+            <p class="text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                화면 아래의 <strong>수료증을 캡처(또는 촬영)</strong>하여<br>지정된 <strong>구글 폼에 제출</strong>해 주셔야<br>최종 캠페인 이벤트 참여가 완료됩니다!
+            </p>
+            <button onclick="document.getElementById('certAlertModal').classList.remove('flex'); document.getElementById('certAlertModal').classList.add('hidden');" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-xl">확인했습니다</button>
+        </div>
+    </div>
+
+    <!-- 관리자 인증 모달 (비밀번호 숨김) -->
     <div id="adminModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 class="text-lg font-bold text-slate-800 mb-2">관리자 인증</h3>
-            <p class="text-sm text-slate-500 mb-4">관리자 비밀번호를 입력해주세요.</p>
-            <!-- 비밀번호 힌트 제거 -->
-            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 mb-5 text-sm">
-            <div class="flex gap-2">
-                <button onclick="closeAdminModal()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2.5 rounded-lg text-sm font-bold transition">취소</button>
-                <button onclick="verifyAdmin()" class="flex-1 bg-slate-800 hover:bg-black text-white py-2.5 rounded-lg text-sm font-bold transition">확인</button>
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <h3 class="text-lg font-bold text-slate-900">관리자 인증</h3>
+            <p class="text-xs text-slate-500">관리자 비밀번호를 입력해주세요.</p>
+            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <div class="flex space-x-2">
+                <button onclick="closeAdminModal()" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-xl text-sm font-bold">취소</button>
+                <button onclick="verifyAdmin()" class="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-bold">확인</button>
             </div>
         </div>
     </div>
 
-    <!-- 관리자 명단 제어판 모달 (개별 삭제 기능 추가) -->
+    <!-- 관리자 제어판 (개별 삭제 기능 추가) -->
     <div id="adminPanelModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl max-h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-800">⚙️ 수료증 발급 명단</h3>
-                <span id="participantCountBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">0명 참여</span>
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900">⚙️ 수료증 관리 제어판</h3>
+                <span id="participantCountBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">0명</span>
             </div>
             
-            <div id="participantListContainer" class="flex-grow overflow-y-auto border border-slate-200 rounded-xl p-2 space-y-2 mb-5 max-h-72 bg-slate-50">
+            <div id="participantListContainer" class="flex-grow overflow-y-auto border border-slate-200 rounded-xl p-3 space-y-3 max-h-72 bg-slate-50 text-xs">
                 <!-- JS 렌더링 -->
             </div>
 
-            <button onclick="closeAdminPanel()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-3 rounded-lg text-sm font-bold transition">닫기</button>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+                <button onclick="resetRankingData()" class="bg-red-500 hover:bg-red-600 text-white py-2 rounded-xl text-xs font-bold transition">전체 초기화 (DB)</button>
+                <button onclick="closeAdminPanel()" class="bg-slate-200 text-slate-700 py-2 rounded-xl text-xs font-bold">닫기</button>
+            </div>
         </div>
     </div>
 
-    <!-- 토스트 알림 / 에러 팝업 -->
-    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-5 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50">
-        복사되었습니다!
-    </div>
-    
-    <div id="errorToast" class="fixed top-6 left-1/2 transform -translate-x-1/2 bg-red-500 text-white text-sm font-bold px-6 py-3 rounded-xl shadow-xl -translate-y-20 opacity-0 transition-all duration-300 z-50 whitespace-pre-line text-center">
-        오류 메시지
-    </div>
+    <!-- 토스트 알림 -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50"></div>
 
     <script>
-        // --- 파이어베이스 설정 ---
+        // 1. 파이어베이스 초기화
         const firebaseConfig = {
             apiKey: "AIzaSyAdhay9Ad7QKzWu5HdAjB0Cmsl851QW6TY",
             authDomain: "digital-diet-d874d.firebaseapp.com",
@@ -402,153 +424,154 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 초기 데이터 상태 ---
+        // 2. 기본 데이터 변수
         let searchQueries = [
-            { id: 1, query: "has:attachment larger:10m", title: "larger:10m (대용량 메일 찾기)", desc: "수행평가 영상, PPT 등 용량을 많이 차지하는 파일 삭제", copies: 0 },
-            { id: 2, query: "is:unread", title: "is:unread (읽지 않은 메일 모아보기)", desc: "가입 인증 메일이나 스팸 등 안 읽고 방치된 메일 정리", copies: 0 },
-            { id: 3, query: "category:promotions", title: "category:promotions (광고성 메일)", desc: "쇼핑, 게임 등 공부와 관련 없는 광고성 메일 일괄 삭제", copies: 0 },
-            { id: 4, query: "older_than:1y", title: "older_than:1y (1년 이상 지난 메일)", desc: "오래되어 볼 일이 없는 과거 과제나 안내문 정리", copies: 0 },
-            { id: 5, query: "unsubscribe", title: "unsubscribe (뉴스레터 구독 해제)", desc: "과거 응모 등으로 자동 구독된 알림 메일 수신 해제", copies: 0 }
+            { id: 1, query: "has:attachment larger:10m", title: "대용량 첨부 파일 찾기", desc: "수행평가 영상, PPT 등 10MB 이상 파일", copies: 0 },
+            { id: 2, query: "is:unread", title: "읽지 않은 메일 모아보기", desc: "회원가입 인증, 방치된 스팸 메일 정리", copies: 0 },
+            { id: 3, query: "category:promotions", title: "광고/프로모션 메일", desc: "쇼핑, 게임 등 불필요한 광고 메일 일괄 삭제", copies: 0 },
+            { id: 4, query: "older_than:1y", title: "1년 이상 지난 옛날 메일", desc: "중학교 시절 안내문 등 오래된 메일 정리", copies: 0 },
+            { id: 5, query: "unsubscribe", title: "뉴스레터 구독 해제", desc: "자동 구독된 알림 메일 해제", copies: 0 }
         ];
         let globalStats = { totalMail: 0, totalKakao: 0, totalCarbon: 0, totalStorage: 0 };
         let participants = [];
-        let totalCopyCount = 0;
 
-        // --- DB 연동 ---
+        // 금칙어 (블랙리스트)
+        const forbiddenWords = ["니똥꼬", "칼라똥", "바보", "멍청이", "ㅅㅂ", "ㅂㅅ", "병신", "시발"];
+        let isCampaignEnded = false;
+
+        // 3. 타이머 및 데드라인 로직 (2026-10-28 19:00:00 기준)
+        const deadlineDate = new Date('2026-10-28T19:00:00+09:00');
+        
+        function updateTimer() {
+            const now = new Date();
+            const diff = deadlineDate - now;
+
+            // 날짜 텍스트 세팅
+            const isToday = now.toDateString() === deadlineDate.toDateString();
+            document.getElementById('deadlineDateText').innerText = isToday ? "오늘 오후 7시 마감" : "10월 28일 오후 7시 마감";
+            document.getElementById('deadlineDescText').innerText = isToday ? "오늘 오후 7시까지" : "10월 28일 오후 7시까지";
+
+            if (diff <= 0) {
+                document.getElementById('countdownTimer').innerText = "00:00:00";
+                if (!isCampaignEnded) endCampaign();
+                return;
+            }
+
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('countdownTimer').innerText = 
+                `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
+
+        function endCampaign() {
+            isCampaignEnded = true;
+            document.getElementById('campaignEndOverlay').classList.remove('hidden');
+            document.getElementById('campaignEndOverlay').classList.add('flex');
+            // 입력 버튼들 비활성화
+            document.getElementById('btnGenerateCert').disabled = true;
+            document.getElementById('btnGenerateCert').classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        // 4. 파이어베이스 데이터 실시간 수신
         db.ref('campaignData').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 if(data.searchQueries) searchQueries = data.searchQueries;
                 if(data.globalStats) globalStats = data.globalStats;
                 if(data.participants) participants = data.participants;
-                if(data.totalCopyCount !== undefined) totalCopyCount = data.totalCopyCount;
             } else {
-                saveToFirebase();
+                saveToFirebase(); // 비어있으면 초기값 세팅
             }
-            updateUI();
+            updateGlobalStatsUI();
+            renderRanking();
+            renderParticipantsList();
         });
 
         function saveToFirebase() {
             db.ref('campaignData').set({
                 searchQueries: searchQueries,
                 globalStats: globalStats,
-                participants: participants,
-                totalCopyCount: totalCopyCount
+                participants: participants
             });
         }
 
-        function updateUI() {
+        // 5. UI 업데이트 함수들
+        function updateGlobalStatsUI() {
             document.getElementById('totalGlobalMail').innerText = globalStats.totalMail.toLocaleString();
             document.getElementById('totalGlobalKakao').innerText = globalStats.totalKakao.toLocaleString();
             document.getElementById('totalGlobalCarbon').innerText = `${parseFloat(globalStats.totalCarbon).toFixed(1)} g`;
             document.getElementById('totalGlobalStorage').innerText = `${globalStats.totalStorage >= 1024 ? (globalStats.totalStorage / 1024).toFixed(2) + ' GB' : parseFloat(globalStats.totalStorage).toFixed(1) + ' MB'}`;
-            document.getElementById('totalCopyCountDisplay').innerText = totalCopyCount.toLocaleString();
-            renderRanking();
-            renderParticipantsList();
-        }
-
-        // --- 기능: 타이머 및 잠금 로직 ---
-        const targetDate = new Date('2026-10-28T19:00:00+09:00').getTime();
-        
-        function setDeadlineText() {
-            const now = new Date();
-            const textElem = document.getElementById('deadlineText');
-            // 한국 시간 기준 날짜 체크 (단순화: 접속일 기준 28일이면 '오늘')
-            if (now.getFullYear() === 2026 && now.getMonth() === 9 && now.getDate() === 28) {
-                textElem.innerText = "(캠페인 기한: 오늘 오후 7시까지)";
-            } else {
-                textElem.innerText = "(캠페인 기한: 10월 28일 오후 7시까지)";
-            }
-        }
-        setDeadlineText();
-
-        const timerInterval = setInterval(() => {
-            const now = new Date().getTime();
-            const distance = targetDate - now;
-
-            if (distance < 0) {
-                clearInterval(timerInterval);
-                document.getElementById('timerDisplay').innerText = "00:00:00";
-                document.getElementById('lockOverlay').classList.remove('hidden');
-                document.getElementById('lockOverlay').classList.add('flex');
-                return;
-            }
-
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            document.getElementById('timerDisplay').innerText = 
-                `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }, 1000);
-
-        // --- 기능: 아코디언 도입부 ---
-        function toggleIntro() {
-            const content = document.getElementById('introContent');
-            const icon = document.getElementById('introIcon');
-            if(content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                icon.style.transform = 'rotate(180deg)';
-            } else {
-                content.classList.add('hidden');
-                icon.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        // --- 기능: 검색어 복사 (디바운스 연타 방지) ---
-        let isCopying = false;
-        function copyQuery(text, id) {
-            if (isCopying) {
-                showToast("너무 빠른 클릭입니다. 잠시 후 시도해주세요.");
-                return;
-            }
-            isCopying = true;
-            setTimeout(() => { isCopying = false; }, 1000); // 1초 쿨타임
-
-            const textarea = document.createElement("textarea");
-            textarea.value = text;
-            document.body.appendChild(textarea);
-            textarea.select();
-            try { 
-                document.execCommand('copy'); 
-                showToast('명령어가 복사되었습니다!'); 
-            } catch (err) {}
-            document.body.removeChild(textarea);
-
-            const target = searchQueries.find(q => q.id === id);
-            if (target) {
-                target.copies += 1;
-                totalCopyCount += 1; 
-                saveToFirebase(); 
-            }
         }
 
         function renderRanking() {
-            let sortedQueries = [...searchQueries].sort((a, b) => b.copies - a.copies);
+            // 복사 횟수로 정렬
+            searchQueries.sort((a, b) => b.copies - a.copies);
             const container = document.getElementById('rankingList');
             container.innerHTML = '';
 
-            sortedQueries.forEach((item, index) => {
+            searchQueries.forEach((item, index) => {
+                const rankColor = index === 0 ? 'bg-amber-50 text-amber-800 border-amber-200' : index === 1 ? 'bg-slate-50 text-slate-800' : 'bg-white text-slate-600';
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index+1}`;
+
                 const card = document.createElement('div');
-                card.className = `p-3 rounded-xl border border-slate-200 bg-white flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-sm`;
+                card.className = `p-4 rounded-2xl border border-slate-200 ${rankColor} flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-sm`;
                 card.innerHTML = `
                     <div class="space-y-1">
                         <div class="flex items-center space-x-2">
-                            <span class="text-[11px] font-bold px-2 py-0.5 rounded text-slate-600 bg-slate-100">#${index + 1}위</span>
-                            <span class="font-bold text-sm text-slate-800">${item.title}</span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-md bg-white shadow-sm border border-slate-100">${medal}</span>
+                            <span class="font-bold text-sm text-slate-900">${item.title}</span>
                         </div>
-                        <p class="text-[11px] text-slate-500">${item.desc}</p>
-                        <code class="text-xs bg-slate-800 text-emerald-400 px-2 py-1 rounded inline-block mt-1 font-mono">${item.query}</code>
+                        <p class="text-xs text-slate-500">${item.desc}</p>
+                        <code class="text-xs bg-slate-900 text-emerald-400 px-2 py-1 rounded font-mono inline-block mt-1">${item.query}</code>
                     </div>
-                    <button onclick="copyQuery('${item.query}', ${item.id})" class="bg-slate-800 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors whitespace-nowrap shadow-sm w-full md:w-auto">
-                        복사하기
-                    </button>
+                    <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
+                        <span class="text-[11px] text-slate-500 font-semibold">복사: <strong class="text-slate-800 text-sm">${item.copies}</strong>회</span>
+                        <button onclick="copyQuery('${item.query}', ${item.id})" ${isCampaignEnded ? 'disabled' : ''} class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold px-3 py-2 rounded-xl transition shadow-sm flex items-center space-x-1">
+                            <i class="fa-solid fa-copy"></i><span>복사</span>
+                        </button>
+                    </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        // --- 기능: 계산기 ---
+        // 복사 연타 방지 변수
+        let isCopying = false;
+        
+        function copyQuery(text, id) {
+            if(isCampaignEnded || isCopying) return;
+            isCopying = true; // 1초 딜레이 (디바운스)
+
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try { document.execCommand('copy'); showToast("복사 완료! 무분별한 연타는 자제해주세요."); } catch (err) {}
+            document.body.removeChild(textarea);
+
+            const target = searchQueries.find(q => q.id === id);
+            if (target) {
+                target.copies += 1;
+                saveToFirebase(); // 순위 갱신
+            }
+
+            setTimeout(() => { isCopying = false; }, 1000);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2000);
+        }
+
+        // 6. 계산기 로직
         const gmailSlider = document.getElementById('gmailSlider');
         const gmailInput = document.getElementById('gmailCountInput');
         const kakaoSlider = document.getElementById('kakaoSlider');
@@ -557,12 +580,11 @@
         function updateCalculator() {
             let gNum = parseInt(gmailInput.value) || 0;
             let kNum = parseInt(kakaoInput.value) || 0;
-            if (gNum < 0) gNum = 0; if (kNum < 0) kNum = 0;
-            
-            gmailSlider.value = gNum > 1000 ? 1000 : gNum;
-            kakaoSlider.value = kNum > 1000 ? 1000 : kNum;
+            gmailSlider.value = gNum > 500 ? 500 : gNum;
+            kakaoSlider.value = kNum > 500 ? 500 : kNum;
 
             document.getElementById('carbonResult').innerText = `${(gNum * 0.04 + kNum * 0.01).toFixed(2)} g`;
+            document.getElementById('storageResult').innerText = `${((gNum + kNum) * 0.05).toFixed(1)} MB`;
         }
 
         gmailSlider.addEventListener('input', (e) => { gmailInput.value = e.target.value; updateCalculator(); });
@@ -570,42 +592,44 @@
         kakaoSlider.addEventListener('input', (e) => { kakaoInput.value = e.target.value; updateCalculator(); });
         kakaoInput.addEventListener('input', updateCalculator);
 
-        // --- 기능: 유효성 검사 및 수료증 발급 ---
-        const blackList = ['니똥꼬', '칼라똥', '바보', '멍청이', '시발', '병신', 'ㅅㅂ', 'ㅂㅅ', '개새', '존나'];
-
+        // 7. 유효성 검사 및 수료증 발급
         function generateCertificate() {
-            const name = document.getElementById('userNameInput').value.trim();
+            if(isCampaignEnded) return;
+
+            const nameRaw = document.getElementById('userNameInput').value.trim();
             const gNum = parseInt(gmailInput.value) || 0;
             const kNum = parseInt(kakaoInput.value) || 0;
             const total = gNum + kNum;
 
-            if (name.length < 2) {
-                showError('학번 및 이름을 최소 2글자 이상 정확히 입력해주세요.\n(예: 10410 박재형)');
+            // 1) 글자수 검사 (최소 2자)
+            if (nameRaw.length < 2) {
+                alert('학번 및 이름을 2글자 이상 정확히 입력해주세요.');
                 return;
             }
-            
-            // 블랙리스트 검사
-            const isBadWord = blackList.some(word => name.includes(word));
-            if (isBadWord) {
-                showError('올바른 학번 및 이름을 입력해 주세요.');
+            if (total === 0) {
+                alert('정리한 메일이나 메시지 개수를 입력해주세요.');
                 return;
             }
 
-            if (total === 0) {
-                showError('정리한 개수를 1개 이상 입력해주세요.');
+            // 2) 블랙리스트(금칙어) 검사
+            const hasForbidden = forbiddenWords.some(word => nameRaw.includes(word));
+            if (hasForbidden) {
+                alert('장난스러운 입력이 감지되었습니다. 올바른 학번 및 이름을 입력해 주세요.');
+                document.getElementById('userNameInput').value = '';
                 return;
             }
 
             const co2Amt = (gNum * 0.04 + kNum * 0.01).toFixed(2);
             const strgAmt = ((gNum + kNum) * 0.05).toFixed(1);
             const today = new Date();
-            const dateStr = `${today.getFullYear()}. ${String(today.getMonth()+1).padStart(2,'0')}. ${String(today.getDate()).padStart(2,'0')}`;
+            const dateStr = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
 
             const newParticipant = {
-                name: name,
+                id: Date.now(), // 고유 ID (삭제용)
+                name: nameRaw,
+                totalCount: total,
                 gNum: gNum,
                 kNum: kNum,
-                totalCount: total,
                 co2: co2Amt,
                 storage: strgAmt,
                 date: today.toLocaleDateString() + ' ' + today.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
@@ -614,6 +638,7 @@
             if(!participants) participants = [];
             participants.unshift(newParticipant);
 
+            // 전체 통계 합산
             globalStats.totalMail += gNum;
             globalStats.totalKakao += kNum;
             globalStats.totalCarbon += parseFloat(co2Amt);
@@ -621,94 +646,22 @@
             
             saveToFirebase();
 
-            // 수료증 텍스트 갱신
-            document.getElementById('certNameDisplay').innerText = name;
-            document.getElementById('certGmailCount').innerText = `${gNum}개`;
-            document.getElementById('certKakaoCount').innerText = `${kNum}개`;
-            document.getElementById('certCo2Count').innerText = `${co2Amt}g`;
+            // 수료증 UI 업데이트
+            document.getElementById('certNameDisplay').innerText = nameRaw;
+            document.getElementById('certGmailDisplay').innerText = `${gNum}개`;
+            document.getElementById('certKakaoDisplay').innerText = `${kNum}개`;
+            document.getElementById('certCo2Display').innerText = `${co2Amt}g`;
             document.getElementById('certDateDisplay').innerText = dateStr;
             
             document.getElementById('certificateCard').classList.remove('hidden');
-            document.getElementById('googleFormSection').classList.remove('hidden');
             
-            document.getElementById('certificateCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
+            // 알림 모달 및 폭죽
+            document.getElementById('certAlertModal').classList.remove('hidden');
+            document.getElementById('certAlertModal').classList.add('flex');
             confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-
-            // 안내 알림창 (피드백 적용)
-            setTimeout(() => {
-                alert("🎉 수료증이 발급되었습니다!\n\n발급된 수료증 화면을 캡처(또는 사진 촬영)하여 지정된 구글 폼에 제출해 주셔야 캠페인 이벤트 최종 참여가 완료됩니다. 화면을 아래로 내려 확인해 주세요!");
-            }, 500);
         }
 
-        // --- 기능: UI 알림 ---
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2000);
-        }
-
-        function showError(msg) {
-            const err = document.getElementById('errorToast');
-            err.innerText = msg;
-            err.classList.remove('-translate-y-20', 'opacity-0');
-            setTimeout(() => err.classList.add('-translate-y-20', 'opacity-0'), 2500);
-        }
-
-        // --- 기능: 관리자 개별 삭제 및 제어 ---
-        function renderParticipantsList() {
-            const container = document.getElementById('participantListContainer');
-            const pCount = participants ? participants.length : 0;
-            document.getElementById('participantCountBadge').innerText = `${pCount}명 수료`;
-            container.innerHTML = '';
-
-            if (pCount === 0) {
-                container.innerHTML = '<p class="text-center text-slate-400 py-4 text-xs">아직 발급된 수료증이 없습니다.</p>';
-                return;
-            }
-
-            participants.forEach((p, index) => {
-                const item = document.createElement('div');
-                item.className = 'bg-white p-3 rounded-lg border border-slate-200 flex justify-between items-center shadow-sm';
-                item.innerHTML = `
-                    <div class="flex-grow">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-slate-800 text-sm">#${pCount - index} ${p.name}</span>
-                            <span class="text-[10px] text-slate-400">${p.date}</span>
-                        </div>
-                        <div class="text-[11px] text-slate-600">
-                            정리: ${p.totalCount}개 <span class="text-emerald-500 font-medium ml-1">(CO₂ ${p.co2}g)</span>
-                        </div>
-                    </div>
-                    <button onclick="deleteParticipant(${index})" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors whitespace-nowrap">
-                        삭제
-                    </button>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        // 개별 삭제 기능 (선택적 삭제로 오염 방지)
-        function deleteParticipant(index) {
-            if(confirm('이 참가자의 기록을 명단과 통계에서 완전히 삭제하시겠습니까?')) {
-                const p = participants[index];
-                
-                // 글로벌 통계에서 해당 인원의 값 차감
-                globalStats.totalMail -= (p.gNum || 0);
-                globalStats.totalKakao -= (p.kNum || 0);
-                globalStats.totalCarbon -= parseFloat(p.co2 || 0);
-                globalStats.totalStorage -= parseFloat(p.storage || 0);
-                
-                // 배열에서 삭제
-                participants.splice(index, 1);
-                
-                // 파이어베이스 업데이트
-                saveToFirebase();
-                alert('삭제되었습니다.');
-            }
-        }
-
+        // 8. 관리자 기능
         function openAdminModal() {
             document.getElementById('adminModal').classList.remove('hidden');
             document.getElementById('adminModal').classList.add('flex');
@@ -720,17 +673,95 @@
         }
         function verifyAdmin() {
             const pwd = document.getElementById('adminPasswordInput').value;
-            if (pwd === 'wogud201007@') {
+            if (pwd === 'wogud201007@') { // 요청하신 새 비밀번호 적용
                 closeAdminModal();
+                renderParticipantsList();
                 document.getElementById('adminPanelModal').classList.remove('hidden');
                 document.getElementById('adminPanelModal').classList.add('flex');
             } else {
-                showError('비밀번호가 일치하지 않습니다.');
+                alert('비밀번호가 일치하지 않습니다.');
             }
         }
         function closeAdminPanel() {
             document.getElementById('adminPanelModal').classList.remove('flex');
             document.getElementById('adminPanelModal').classList.add('hidden');
+        }
+
+        // 개별 삭제 기능 추가
+        function deleteParticipant(id, gNum, kNum, co2, strg) {
+            if(confirm('이 참가자의 기록을 삭제하시겠습니까? 통계에서도 차감됩니다.')) {
+                // 명단에서 삭제
+                participants = participants.filter(p => p.id !== id);
+                
+                // 통계에서 차감
+                globalStats.totalMail -= gNum;
+                globalStats.totalKakao -= kNum;
+                globalStats.totalCarbon -= parseFloat(co2);
+                globalStats.totalStorage -= parseFloat(strg);
+
+                // 마이너스 방지
+                if(globalStats.totalMail < 0) globalStats.totalMail = 0;
+                if(globalStats.totalKakao < 0) globalStats.totalKakao = 0;
+                if(globalStats.totalCarbon < 0) globalStats.totalCarbon = 0;
+                if(globalStats.totalStorage < 0) globalStats.totalStorage = 0;
+
+                saveToFirebase();
+            }
+        }
+
+        function renderParticipantsList() {
+            const container = document.getElementById('participantListContainer');
+            const badge = document.getElementById('participantCountBadge');
+            
+            if(!participants) participants = [];
+            badge.innerText = `${participants.length}명 참여`;
+            container.innerHTML = '';
+
+            if (participants.length === 0) {
+                container.innerHTML = '<p class="text-center text-slate-400 py-4">아직 발급된 수료증이 없습니다.</p>';
+                return;
+            }
+
+            participants.forEach((p, index) => {
+                const item = document.createElement('div');
+                item.className = 'bg-white p-3 rounded-xl border border-slate-200 flex flex-col space-y-2';
+                item.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span class="font-bold text-slate-900 text-sm">#${participants.length - index} ${p.name}</span>
+                        <!-- 개별 삭제 버튼 -->
+                        <button onclick="deleteParticipant(${p.id}, ${p.gNum}, ${p.kNum}, ${p.co2}, ${p.storage})" class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded transition">삭제</button>
+                    </div>
+                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg">
+                        <span class="text-xs font-medium text-slate-600">정리 합계: <strong>${p.totalCount}개</strong></span>
+                        <span class="text-[10px] text-slate-400">${p.date}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function resetRankingData() {
+            if (confirm('모든 데이터(통계, 랭킹, 참가자)를 파이어베이스에서 완전히 삭제하시겠습니까?')) {
+                searchQueries.forEach(q => q.copies = 0);
+                globalStats = { totalMail: 0, totalKakao: 0, totalCarbon: 0, totalStorage: 0 };
+                participants = [];
+                saveToFirebase();
+                alert('초기화 완료되었습니다.');
+                closeAdminPanel();
+            }
+        }
+
+        // 아코디언 토글
+        function toggleAccordion() {
+            const content = document.getElementById('accordionContent');
+            const icon = document.getElementById('accordionIcon');
+            if (content.classList.contains('open')) {
+                content.classList.remove('open');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                content.classList.add('open');
+                icon.style.transform = 'rotate(180deg)';
+            }
         }
 
         updateCalculator();
