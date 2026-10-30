@@ -1,123 +1,492 @@
-<!-- HTML -->
-<h1>Jquery Toggle Button</h1>
-<div class="toggle-btn active">
-  <input type="checkbox"  checked class="cb-value" />
-  <span class="round-btn"></span>
-</div>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만의 AI 오답 노트</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 파이어베이스 SDK (Storage 추가) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
 
-<div class="toggle-btn">
-  <input type="checkbox" class="cb-value" />
-  <span class="round-btn"></span>
-</div>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f1f5f9; }
+        
+        /* 커스텀 스크롤바 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+        /* 포스트잇 호버 효과 */
+        .post-it { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .post-it:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+        
+        /* 상단 탭 스크롤 숨김 (모바일용) */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col relative pb-24">
 
-<!-- follow me template -->
-<div class="made-with-love">
-  Made with 
-  <i>♥</i> by 
-  <a target="_blank" href="https://codepen.io/nikhil8krishnan">Nikhil Krishnan</a>
-</div>
-<script src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'></script>
+    <!-- 상단 헤더 & 검색바 -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-4 space-y-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="bg-indigo-500 text-white p-2 rounded-lg shadow">
+                        <i class="fa-solid fa-book-open text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">AI 오답 노트</h1>
+                </div>
+                <!-- 검색창 -->
+                <div class="relative w-1/2 max-w-xs hidden md:block">
+                    <input type="text" id="searchInput" onkeyup="filterNotes()" placeholder="키워드, 문제집 검색..." class="w-full bg-slate-100 border border-slate-200 text-sm rounded-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+            </div>
+            
+            <!-- 모바일 검색창 -->
+            <div class="relative w-full md:hidden">
+                <input type="text" id="searchInputMobile" onkeyup="filterNotesMobile()" placeholder="키워드, 문제집 검색..." class="w-full bg-slate-100 border border-slate-200 text-sm rounded-full pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            </div>
 
-/* CSS */
-@import url(https://fonts.googleapis.com/css?family=Ubuntu);
-body{
-  text-align: center;
-  padding: 10% 50px;
-  background-color: #2c3e50;
-}
-h1{
-  font-family: 'Ubuntu', sans-serif;
-  color: #fff;
-  font-size: 40px;
-  font-weight: normal;
-  margin-bottom: 50px;
-}
-.toggle-btn{
-  width: 80px;
-  height: 40px;
-  margin: 10px;
-  border-radius: 50px;
-  display: inline-block;
-  position: relative;
-  background : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAyklEQVQ4T42TaxHCQAyENw5wAhLACVUAUkABOCkSwEkdhNmbpHNckzv689L98toIAKjqGcAFwElEFr5ln6ruAMwA7iLyFBM/TPDuQSrxwf6fCKBoX2UMIYGYkg8BLOnVg2RiAEexGaQQq4w9e9klcxGLLAUwgDAcihlYAR1IvZA1sz/+AAaQjXhTQQVoe2Yo3E7UQiT2ijeQdojRtClOfVKvMVyVpU594kZK9zzySWTlcNqZY9tjCsUds00+A57z1e35xzlzJjee8xf0HYp+cOZQUQAAAABJRU5ErkJggg==') no-repeat 50px center #e74c3c;
-  cursor: pointer;
-  -webkit-transition: background-color .40s ease-in-out;
-  -moz-transition: background-color .40s ease-in-out;
-  -o-transition: background-color .40s ease-in-out;
-  transition: background-color .40s ease-in-out;
-  cursor:pointer;
-  &.active{
-    background : url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAmUlEQVQ4T6WT0RWDMAhFeZs4ipu0mawZpaO4yevBc6hUIWLNd+4NeQDk5sE/PMkZwFvZywKSTxF5iUgH0C4JHGyF97IggFVSqyCFga0CvQSg70Mdwd8QSSr4sGBMcgavAgdvwQCtApvA2uKr1x7Pu++06ItrF5LXPB/CP4M0kKTwYRIDyRAOR9lJTuF0F0hOAJbKopVHOZN9ACS0UgowIx8ZAAAAAElFTkSuQmCC') no-repeat 10px center #2ecc71;
-    .round-btn{
-      left: 45px;
-    }
-  }
-  .round-btn{
-    width: 30px;
-    height: 30px;
-    background-color: #fff;
-    border-radius: 50%;
-    display: inline-block;
-    position: absolute;
-    left: 5px;
-    top: 50%;
-    margin-top: -15px;
-    -webkit-transition: all .30s ease-in-out;
-  -moz-transition: all .30s ease-in-out;
-  -o-transition: all .30s ease-in-out;
-  transition: all .30s ease-in-out;
-  }
-  .cb-value{
-    position: absolute;
-    left:0;
-    right:0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    z-index: 9;
-    cursor:pointer;
-    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
-  }
-}
+            <!-- 과목 탭 -->
+            <div class="flex overflow-x-auto hide-scroll gap-2 pb-1" id="tabContainer">
+                <button onclick="setTab('전체')" class="tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md whitespace-nowrap transition-colors" data-tab="전체">전체</button>
+                <button onclick="setTab('국어')" class="tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 whitespace-nowrap transition-colors" data-tab="국어">국어</button>
+                <button onclick="setTab('영어')" class="tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 whitespace-nowrap transition-colors" data-tab="영어">영어</button>
+                <button onclick="setTab('수학')" class="tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 whitespace-nowrap transition-colors" data-tab="수학">수학</button>
+                <button onclick="setTab('사회')" class="tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 whitespace-nowrap transition-colors" data-tab="사회">사회</button>
+                <button onclick="setTab('과학')" class="tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 whitespace-nowrap transition-colors" data-tab="과학">과학</button>
+            </div>
+        </div>
+    </header>
 
+    <!-- 메인 콘텐츠 (포스트잇 그리드) -->
+    <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-grow">
+        <div id="notesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 자바스크립트로 포스트잇 카드 렌더링 -->
+            <div class="col-span-full text-center py-20 text-slate-400">
+                <i class="fa-solid fa-spinner fa-spin text-3xl mb-3"></i>
+                <p>노트를 불러오는 중입니다...</p>
+            </div>
+        </div>
+    </main>
 
+    <!-- 새 노트 작성 플로팅 버튼 -->
+    <button onclick="openNoteModal()" class="fixed bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-40">
+        <i class="fa-solid fa-plus text-2xl"></i>
+    </button>
 
-//follow me template
-.made-with-love{
-  position: fixed;
-  left: 0;
-  width: 100%;
-  bottom: 10px;
-  text-align: center;
-  font-size: 10px;
-  z-index: 9999;
-  font-family: arial;
-  color: #fff;
-  i{
-    font-style: normal;
-    color: #F50057;
-    font-size: 14px;
-    position: relative;
-    top: 2px;
-  }
-  a{
-    color: #fff;
-    text-decoration: none;
-    &:hover{
-      text-decoration: underline;
-    }
-  }
-}
+    <!-- 노트 작성/수정 모달 -->
+    <div id="noteModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8 relative flex flex-col">
+            <!-- 모달 헤더 -->
+            <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                <h3 class="text-xl font-bold text-slate-900" id="modalTitle">새 오답 노트 작성</h3>
+                <button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+            </div>
+            
+            <!-- 모달 콘텐츠 -->
+            <div class="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+                <input type="hidden" id="noteId">
+                <input type="hidden" id="existingImageUrl">
 
-// JavaScript
-//$('input.cb-value').prop("checked", true);
-$('.cb-value').click(function() {
-  var mainParent = $(this).parent('.toggle-btn');
-  if($(mainParent).find('input.cb-value').is(':checked')) {
-    $(mainParent).addClass('active');
-  } else {
-    $(mainParent).removeClass('active');
-  }
+                <!-- 과목 및 난이도 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">과목</label>
+                        <select id="subjectInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="국어">국어</option>
+                            <option value="영어">영어</option>
+                            <option value="수학">수학</option>
+                            <option value="사회">사회</option>
+                            <option value="과학">과학</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">난이도 (색상 결정)</label>
+                        <select id="difficultyInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="어려움">🔴 어려움 (빨강)</option>
+                            <option value="보통" selected>🟢 보통 (초록)</option>
+                            <option value="쉬움">🔵 쉬움 (파랑)</option>
+                        </select>
+                    </div>
+                </div>
 
-})
+                <!-- 문제집 및 번호 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">문제집 (출처)</label>
+                        <input type="text" id="bookInput" placeholder="예: 쎈 수학" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">문제 번호 (또는 페이지)</label>
+                        <input type="text" id="numInput" placeholder="예: 452번" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- 키워드 -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">핵심 키워드 (검색용)</label>
+                    <input type="text" id="keywordInput" placeholder="예: 미적분, 부분적분법, 실수주의" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+
+                <!-- 사진 첨부 -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">문제 사진 첨부</label>
+                    <div class="flex items-center gap-3">
+                        <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i class="fa-solid fa-camera"></i> 사진 선택
+                            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(event)">
+                        </label>
+                        <span id="fileNameDisplay" class="text-xs text-slate-500">선택된 파일 없음</span>
+                    </div>
+                    <!-- 이미지 미리보기 -->
+                    <div id="imagePreviewContainer" class="hidden mt-3 relative inline-block">
+                        <img id="imagePreview" src="" class="h-32 object-contain border border-slate-200 rounded-lg">
+                        <button onclick="removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs shadow hover:bg-red-600">&times;</button>
+                    </div>
+                </div>
+
+                <!-- 내용 작성 -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-user-pen text-indigo-500"></i> 내가 몰랐던 부분 / 나의 오개념
+                    </label>
+                    <textarea id="myNoteInput" rows="3" placeholder="어떤 부분에서 막혔는지, 왜 틀렸는지 적어보세요." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-robot text-emerald-500"></i> AI 풀이 설명 / 핵심 개념
+                    </label>
+                    <textarea id="aiNoteInput" rows="4" placeholder="AI와 대화하며 알게 된 정확한 풀이법이나 핵심 개념을 복사해서 붙여넣으세요." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-emerald-50/30"></textarea>
+                </div>
+            </div>
+
+            <!-- 모달 푸터 -->
+            <div class="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                <button onclick="closeNoteModal()" class="px-5 py-2 rounded-lg text-sm font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition">취소</button>
+                <button onclick="saveNote()" id="saveBtn" class="px-5 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> 저장하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 확대 보기 모달 -->
+    <div id="imageZoomModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[60] p-4 backdrop-blur-sm" onclick="this.classList.replace('flex','hidden')">
+        <img id="zoomedImage" src="" class="max-w-full max-h-full object-contain rounded cursor-zoom-out">
+    </div>
+
+    <script>
+        // --- 파이어베이스 설정 (기존 정보 유지) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdhay9Ad7QKzWu5HdAjB0Cmsl851QW6TY",
+            authDomain: "digital-diet-d874d.firebaseapp.com",
+            databaseURL: "https://digital-diet-d874d-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "digital-diet-d874d",
+            storageBucket: "digital-diet-d874d.firebasestorage.app", // 사진 저장소
+            messagingSenderId: "245839108604",
+            appId: "1:245839108604:web:70ae15be8b599e71467a79"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+
+        // --- 상태 변수 ---
+        let allNotes = [];
+        let currentTab = '전체';
+        let currentImageFile = null;
+
+        // --- 데이터 실시간 수신 ---
+        db.ref('studyNotes').on('value', (snapshot) => {
+            const data = snapshot.val();
+            allNotes = [];
+            if (data) {
+                // 객체를 배열로 변환
+                for (let key in data) {
+                    allNotes.push({ id: key, ...data[key] });
+                }
+                // 최신순 정렬
+                allNotes.sort((a, b) => b.timestamp - a.timestamp);
+            }
+            renderNotes();
+        });
+
+        // --- 탭 및 검색 필터링 로직 ---
+        function setTab(tabName) {
+            currentTab = tabName;
+            
+            // 탭 UI 스타일 변경
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.tab === tabName) {
+                    btn.className = "tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md whitespace-nowrap transition-colors";
+                } else {
+                    btn.className = "tab-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 whitespace-nowrap transition-colors";
+                }
+            });
+            
+            renderNotes();
+        }
+
+        function filterNotes() { renderNotes(); }
+        function filterNotesMobile() { 
+            document.getElementById('searchInput').value = document.getElementById('searchInputMobile').value;
+            renderNotes(); 
+        }
+
+        // --- 포스트잇(노트) 렌더링 ---
+        function renderNotes() {
+            const grid = document.getElementById('notesGrid');
+            const keyword = document.getElementById('searchInput').value.toLowerCase();
+            
+            // 필터링 적용 (탭 + 검색어)
+            const filteredNotes = allNotes.filter(note => {
+                const matchTab = currentTab === '전체' || note.subject === currentTab;
+                const matchKeyword = note.book.toLowerCase().includes(keyword) || 
+                                     note.keyword.toLowerCase().includes(keyword) || 
+                                     note.myNote.toLowerCase().includes(keyword) ||
+                                     note.aiNote.toLowerCase().includes(keyword);
+                return matchTab && matchKeyword;
+            });
+
+            grid.innerHTML = '';
+
+            if (filteredNotes.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-20 text-slate-400 flex flex-col items-center">
+                        <div class="bg-slate-100 w-20 h-20 rounded-full flex items-center justify-center mb-4">
+                            <i class="fa-solid fa-folder-open text-3xl text-slate-300"></i>
+                        </div>
+                        <p class="font-medium text-slate-500">저장된 오답 노트가 없습니다.</p>
+                        <p class="text-xs mt-1">우측 하단 + 버튼을 눌러 새 노트를 작성해보세요!</p>
+                    </div>`;
+                return;
+            }
+
+            filteredNotes.forEach(note => {
+                // 난이도에 따른 배경색 설정
+                let bgClass = "bg-green-50 border-green-200"; // 보통
+                let badgeClass = "bg-green-500 text-white";
+                if(note.difficulty === "어려움") { bgClass = "bg-rose-50 border-rose-200"; badgeClass = "bg-rose-500 text-white"; }
+                if(note.difficulty === "쉬움") { bgClass = "bg-sky-50 border-sky-200"; badgeClass = "bg-sky-500 text-white"; }
+
+                const dateStr = new Date(note.timestamp).toLocaleDateString();
+
+                // 이미지 HTML 조립
+                let imageHtml = '';
+                if(note.imageUrl) {
+                    imageHtml = `
+                        <div class="mt-3 bg-white p-1 rounded-lg border border-black/5 cursor-zoom-in" onclick="zoomImage('${note.imageUrl}')">
+                            <img src="${note.imageUrl}" class="w-full h-32 object-cover rounded-md opacity-90 hover:opacity-100 transition" alt="문제사진">
+                        </div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = `post-it rounded-2xl p-5 border shadow-sm flex flex-col h-full ${bgClass}`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="${badgeClass} text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">${note.subject}</span>
+                            <span class="text-xs font-bold text-slate-500 px-1.5 py-0.5 bg-white/50 rounded">${note.difficulty}</span>
+                        </div>
+                        <div class="relative group">
+                            <button class="text-slate-400 hover:text-slate-700 transition px-1"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                            <!-- 호버 메뉴 -->
+                            <div class="absolute right-0 mt-1 w-24 bg-white rounded-lg shadow-xl border border-slate-100 hidden group-hover:block overflow-hidden z-10">
+                                <button onclick="editNote('${note.id}')" class="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"><i class="fa-solid fa-pen mr-1 text-indigo-500"></i> 수정</button>
+                                <button onclick="deleteNote('${note.id}')" class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 border-t border-slate-100"><i class="fa-solid fa-trash-can mr-1"></i> 삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h4 class="font-extrabold text-slate-800 text-lg leading-tight mb-1">${note.book}</h4>
+                    <p class="text-sm font-bold text-indigo-900 mb-2">${note.num}</p>
+                    
+                    <div class="flex-grow space-y-3 mt-1">
+                        ${imageHtml}
+                        <div class="bg-white/60 p-3 rounded-xl">
+                            <p class="text-[10px] font-bold text-slate-500 mb-1"><i class="fa-solid fa-user-pen"></i> 내가 몰랐던 것</p>
+                            <p class="text-sm text-slate-700 leading-snug break-words whitespace-pre-wrap">${note.myNote}</p>
+                        </div>
+                        <div class="bg-white/80 p-3 rounded-xl border border-white">
+                            <p class="text-[10px] font-bold text-emerald-600 mb-1"><i class="fa-solid fa-robot"></i> AI 풀이 설명</p>
+                            <p class="text-sm text-slate-800 leading-snug break-words whitespace-pre-wrap font-medium">${note.aiNote}</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-black/5 flex justify-between items-center text-[10px] text-slate-500">
+                        <span><i class="fa-solid fa-tags"></i> ${note.keyword || '키워드 없음'}</span>
+                        <span>${dateStr}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- 이미지 줌 기능 ---
+        function zoomImage(url) {
+            document.getElementById('zoomedImage').src = url;
+            document.getElementById('imageZoomModal').classList.replace('hidden', 'flex');
+        }
+
+        // --- 모달 제어 ---
+        function openNoteModal() {
+            document.getElementById('noteId').value = '';
+            document.getElementById('existingImageUrl').value = '';
+            document.getElementById('subjectInput').value = '국어';
+            document.getElementById('difficultyInput').value = '보통';
+            document.getElementById('bookInput').value = '';
+            document.getElementById('numInput').value = '';
+            document.getElementById('keywordInput').value = '';
+            document.getElementById('myNoteInput').value = '';
+            document.getElementById('aiNoteInput').value = '';
+            
+            document.getElementById('modalTitle').innerText = '새 오답 노트 작성';
+            removeImage(); // 이미지 미리보기 초기화
+            
+            document.getElementById('noteModal').classList.remove('hidden');
+            document.getElementById('noteModal').classList.add('flex');
+        }
+
+        function closeNoteModal() {
+            document.getElementById('noteModal').classList.add('hidden');
+            document.getElementById('noteModal').classList.remove('flex');
+        }
+
+        // --- 사진 미리보기 및 처리 ---
+        function previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                currentImageFile = file;
+                document.getElementById('fileNameDisplay').innerText = file.name;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreviewContainer').classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function removeImage() {
+            currentImageFile = null;
+            document.getElementById('imageInput').value = '';
+            document.getElementById('fileNameDisplay').innerText = '선택된 파일 없음';
+            document.getElementById('imagePreview').src = '';
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('existingImageUrl').value = ''; // 기존 이미지도 삭제 처리
+        }
+
+        // --- 노트 저장 (새로 작성 & 수정) ---
+        async function saveNote() {
+            const id = document.getElementById('noteId').value; // 비어있으면 새 글
+            const subject = document.getElementById('subjectInput').value;
+            const difficulty = document.getElementById('difficultyInput').value;
+            const book = document.getElementById('bookInput').value.trim();
+            const num = document.getElementById('numInput').value.trim();
+            const keyword = document.getElementById('keywordInput').value.trim();
+            const myNote = document.getElementById('myNoteInput').value.trim();
+            const aiNote = document.getElementById('aiNoteInput').value.trim();
+            let imageUrl = document.getElementById('existingImageUrl').value; // 수정 시 기존 이미지 유지용
+
+            // 필수값 검사
+            if (!book || !num || !myNote) {
+                alert("문제집 이름, 문제 번호, 그리고 '내가 몰랐던 부분'은 필수 입력사항입니다!");
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장중...';
+            saveBtn.disabled = true;
+
+            try {
+                // 1. 이미지가 새로 첨부된 경우 Storage에 업로드
+                if (currentImageFile) {
+                    const fileRef = storage.ref().child('note_images/' + Date.now() + '_' + currentImageFile.name);
+                    const snapshot = await fileRef.put(currentImageFile);
+                    imageUrl = await snapshot.ref.getDownloadURL();
+                }
+
+                // 2. DB에 저장할 데이터 객체
+                const noteData = {
+                    subject, difficulty, book, num, keyword, myNote, aiNote,
+                    imageUrl: imageUrl || null, // 이미지가 없으면 null
+                    timestamp: id ? (allNotes.find(n => n.id === id).timestamp) : Date.now() // 수정이면 기존시간, 새글이면 현재시간
+                };
+
+                // 3. 파이어베이스에 저장 또는 업데이트
+                if (id) {
+                    await db.ref('studyNotes/' + id).update(noteData);
+                } else {
+                    await db.ref('studyNotes').push(noteData);
+                }
+
+                closeNoteModal();
+            } catch (error) {
+                console.error("저장 실패:", error);
+                alert("저장 중 오류가 발생했습니다. 파이어베이스 Storage 규칙을 확인해주세요.");
+            } finally {
+                saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장하기';
+                saveBtn.disabled = false;
+            }
+        }
+
+        // --- 노트 수정 ---
+        function editNote(id) {
+            const note = allNotes.find(n => n.id === id);
+            if (!note) return;
+
+            document.getElementById('noteId').value = note.id;
+            document.getElementById('subjectInput').value = note.subject;
+            document.getElementById('difficultyInput').value = note.difficulty;
+            document.getElementById('bookInput').value = note.book;
+            document.getElementById('numInput').value = note.num;
+            document.getElementById('keywordInput').value = note.keyword || '';
+            document.getElementById('myNoteInput').value = note.myNote;
+            document.getElementById('aiNoteInput').value = note.aiNote;
+            
+            document.getElementById('modalTitle').innerText = '오답 노트 수정하기';
+
+            // 이미지 처리
+            removeImage(); // 일단 비우고
+            if(note.imageUrl) {
+                document.getElementById('existingImageUrl').value = note.imageUrl;
+                document.getElementById('fileNameDisplay').innerText = '기존 사진 유지됨 (변경하려면 첨부)';
+                document.getElementById('imagePreview').src = note.imageUrl;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            }
+
+            document.getElementById('noteModal').classList.remove('hidden');
+            document.getElementById('noteModal').classList.add('flex');
+        }
+
+        // --- 노트 삭제 ---
+        function deleteNote(id) {
+            if (confirm("이 오답 노트를 완전히 삭제하시겠습니까? (사진 포함)")) {
+                const note = allNotes.find(n => n.id === id);
+                
+                // DB에서 데이터 삭제
+                db.ref('studyNotes/' + id).remove().then(() => {
+                    // Storage에서 이미지 파일도 삭제 (선택사항, 깔끔한 관리를 위해)
+                    if (note && note.imageUrl) {
+                        const imgRef = storage.refFromURL(note.imageUrl);
+                        imgRef.delete().catch(err => console.log("이미지 삭제 에러(무시가능):", err));
+                    }
+                }).catch(error => {
+                    alert("삭제 중 오류가 발생했습니다.");
+                });
+            }
+        }
+    </script>
+</body>
+</html>
