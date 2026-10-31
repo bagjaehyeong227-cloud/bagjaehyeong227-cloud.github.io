@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>스마트 수학 오답노트</title>
+    <title>스마트 학습 & 일정 통합 플랫폼</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <!-- 파이어베이스 SDK (기존 데이터베이스 그대로 연동) -->
+    <!-- 파이어베이스 SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
@@ -18,111 +18,387 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 탭 버튼 활성화 스타일 */
+        .tab-btn { position: relative; transition: all 0.3s ease; }
+        .tab-btn.active { color: #4f46e5; font-weight: 700; border-bottom: 3px solid #4f46e5; }
+        .tab-btn:not(.active) { color: #64748b; font-weight: 500; border-bottom: 3px solid transparent; }
+        .tab-btn:not(.active):hover { color: #475569; border-bottom: 3px solid #cbd5e1; }
+
+        /* 섹션 전환 (페이드 인) */
+        .tab-content { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .tab-content.active { display: block; opacity: 1; }
+
+        /* 달력 그리드 */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { aspect-ratio: 1; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.25rem; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s; background: white; }
+        .calendar-day:hover { border-color: #818cf8; background-color: #f8fafc; }
+        .calendar-day.today { border-color: #4f46e5; background-color: #eef2ff; border-width: 2px; }
+        
+        /* 플래시카드 뒤집기 */
+        .flashcard { perspective: 1000px; cursor: pointer; height: 160px; }
+        .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+        .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 1rem; padding: 1.5rem; text-align: center; }
+        .flashcard-front { background-color: white; border: 1px solid #e2e8f0; }
+        .flashcard-back { background-color: #4f46e5; color: white; transform: rotateY(180deg); border: 1px solid #4338ca; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col relative">
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-    <!-- 상단 헤더 -->
+    <!-- 상단 헤더 및 네비게이션 탭 -->
     <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-                <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md">
-                    <i class="fa-solid fa-book-open text-xl"></i>
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md flex items-center justify-center w-10 h-10">
+                    <i class="fa-solid fa-graduation-cap text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="text-base md:text-lg font-bold text-slate-900">스마트 수학 오답노트</h1>
+                    <h1 class="text-base md:text-lg font-extrabold text-slate-900 tracking-tight">Smart Study Platform</h1>
                 </div>
             </div>
             <!-- 관리자 모드 버튼 -->
             <button onclick="openAdminModal()" class="text-slate-400 hover:text-indigo-600 p-2 transition" title="데이터 초기화">
-                <i class="fa-solid fa-lock text-lg"></i>
+                <i class="fa-solid fa-gear text-lg"></i>
             </button>
+        </div>
+        
+        <!-- 하단 탭 메뉴 -->
+        <div class="max-w-5xl mx-auto px-4 mt-2 flex space-x-1 overflow-x-auto pb-[-2px] no-scrollbar">
+            <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn active px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-chart-pie mr-2"></i>대시보드</button>
+            <button onclick="switchTab('tab-wrongnote')" id="btn-tab-wrongnote" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>내신 오답노트</button>
+            <button onclick="switchTab('tab-mockexam')" id="btn-tab-mockexam" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-file-pen mr-2"></i>모의고사 오답</button>
+            <button onclick="switchTab('tab-voca')" id="btn-tab-voca" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-layer-group mr-2"></i>영단어/개념 카드</button>
+            <button onclick="switchTab('tab-calendar')" id="btn-tab-calendar" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-calendar-days mr-2"></i>스케줄러</button>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full space-y-8 relative z-10">
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full relative z-10">
 
-        <!-- 인트로 배너 -->
-        <section class="bg-gradient-to-br from-indigo-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
-            <div class="relative z-10 space-y-3">
-                <span class="bg-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 py-1 rounded-full border border-indigo-400/30">수학 성적 향상의 지름길</span>
-                <h2 class="text-2xl md:text-3xl font-extrabold leading-snug">
-                    틀린 문제를 내 것으로 만드는<br>오직 나만의 오답노트 📚
-                </h2>
-                <p class="text-slate-300 text-xs md:text-sm leading-relaxed max-w-2xl">
-                    AI와 대화하며 정리한 오답을 복사해서 붙여넣기만 하세요. 자동으로 분류되어 안전하게 클라우드에 실시간 저장됩니다.
-                </p>
+        <!-- ============================================== -->
+        <!-- 1. 대시보드 (통계) 탭 -->
+        <!-- ============================================== -->
+        <section id="tab-dashboard" class="tab-content active space-y-6">
+            <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+                <div class="relative z-10">
+                    <span class="bg-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 py-1 rounded-full border border-indigo-400/30">학습 현황 한눈에 보기</span>
+                    <h2 class="text-2xl md:text-3xl font-extrabold leading-snug mt-3">
+                        오늘도 목표를 향해 달려보세요! 🚀
+                    </h2>
+                    <p class="text-slate-300 text-sm mt-2">D-Day 타이머와 함께 집중력을 높이고 과목별 오답 통계를 확인하세요.</p>
+                </div>
+            </div>
+
+            <!-- D-Day 및 뽀모도로 타이머 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800"><i class="fa-solid fa-flag-checkered text-indigo-500 mr-2"></i>시험 D-Day</h3>
+                        <button onclick="setDday()" class="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">설정</button>
+                    </div>
+                    <div class="text-center py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <p id="ddayTitle" class="text-sm font-medium text-slate-500 mb-1">다음 시험까지</p>
+                        <p id="ddayCounter" class="text-4xl font-extrabold text-indigo-600">D-00</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800"><i class="fa-solid fa-stopwatch text-emerald-500 mr-2"></i>집중 타이머</h3>
+                        <div class="space-x-1">
+                            <button onclick="setTimer(25)" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition">25분</button>
+                            <button onclick="setTimer(50)" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition">50분</button>
+                        </div>
+                    </div>
+                    <div class="text-center py-4 bg-slate-900 rounded-2xl shadow-inner relative">
+                        <p id="timerDisplay" class="text-4xl font-mono font-extrabold text-emerald-400 tracking-wider">25:00</p>
+                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-3">
+                            <button onclick="startTimer()" id="btnTimerStart" class="text-white hover:text-emerald-400 transition"><i class="fa-solid fa-play"></i></button>
+                            <button onclick="pauseTimer()" id="btnTimerPause" class="text-white hover:text-amber-400 transition hidden"><i class="fa-solid fa-pause"></i></button>
+                            <button onclick="resetTimer()" class="text-white hover:text-red-400 transition"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 과목별 오답 통계 요약 -->
+            <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                <h3 class="font-bold text-slate-800 mb-4"><i class="fa-solid fa-chart-bar text-blue-500 mr-2"></i>과목별 누적 오답 수</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3" id="statCards">
+                    <!-- JS 랜더링 -->
+                </div>
             </div>
         </section>
 
-        <!-- AI 텍스트 자동 분석 입력 폼 -->
-        <section class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl">
-                        <i class="fa-solid fa-robot text-xl"></i>
+
+        <!-- ============================================== -->
+        <!-- 2. 내신 오답노트 (5과목 + 사진 첨부) 탭 -->
+        <!-- ============================================== -->
+        <section id="tab-wrongnote" class="tab-content space-y-6">
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
+                <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
+                    <div class="bg-indigo-100 text-indigo-600 p-3 rounded-2xl"><i class="fa-solid fa-pen-to-square text-xl"></i></div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">새로운 오답 등록하기</h3>
+                        <p class="text-xs text-slate-500">사진을 첨부하거나 AI 정리 텍스트를 붙여넣으세요.</p>
+                    </div>
+                </div>
+
+                <!-- 수동 / 사진 첨부 폼 -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-1">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">과목 선택 <span class="text-red-500">*</span></label>
+                            <select id="wnSubject" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm bg-white">
+                                <option value="국어">국어</option>
+                                <option value="영어">영어</option>
+                                <option value="수학" selected>수학</option>
+                                <option value="사회">사회</option>
+                                <option value="과학">과학</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">단원 및 교재/번호 <span class="text-red-500">*</span></label>
+                            <input type="text" id="wnTitle" placeholder="예: 다항식의 연산 / 쎈 B단계 145번" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">틀린 이유 (태그)</label>
+                            <input type="text" id="wnReason" placeholder="예: #부호실수 #개념부족" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">문제 사진 첨부 (선택)</label>
+                            <div class="relative w-full">
+                                <input type="file" id="wnImage" accept="image/*" class="hidden" onchange="previewImage(this, 'wnPreview')">
+                                <label for="wnImage" class="w-full flex items-center justify-center py-2.5 px-4 border border-dashed border-indigo-300 bg-indigo-50 text-indigo-600 rounded-xl cursor-pointer hover:bg-indigo-100 transition text-sm font-medium">
+                                    <i class="fa-solid fa-camera mr-2"></i>사진 촬영 / 갤러리
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 이미지 미리보기 영역 -->
+                    <div id="wnPreviewContainer" class="hidden relative inline-block">
+                        <img id="wnPreview" src="" alt="미리보기" class="max-h-32 rounded-lg border border-slate-200 shadow-sm">
+                        <button onclick="removeImage('wnPreviewContainer', 'wnImage')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">풀이 및 해설 (AI 텍스트 복붙 가능)</label>
+                        <textarea id="wnSolution" rows="3" placeholder="풀이 과정을 적거나, AI가 분석해준 텍스트 전체를 여기에 붙여넣어도 자동 처리됩니다." class="w-full py-3 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm resize-none"></textarea>
+                    </div>
+
+                    <button onclick="addWrongNote('normal')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-plus"></i><span>내신 오답 노트에 저장</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 과목별 필터 및 리스트 -->
+            <div class="flex justify-between items-center mt-8 mb-4 px-2">
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar pb-1">
+                    <button onclick="filterList('normal', '전체')" class="filter-btn active text-xs font-bold px-3 py-1.5 bg-slate-800 text-white rounded-full">전체</button>
+                    <button onclick="filterList('normal', '국어')" class="filter-btn text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-full">국어</button>
+                    <button onclick="filterList('normal', '영어')" class="filter-btn text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-full">영어</button>
+                    <button onclick="filterList('normal', '수학')" class="filter-btn text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-full">수학</button>
+                    <button onclick="filterList('normal', '사회')" class="filter-btn text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-full">사회</button>
+                    <button onclick="filterList('normal', '과학')" class="filter-btn text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-full">과학</button>
+                </div>
+                <span id="wnCountBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">0개</span>
+            </div>
+            
+            <div id="wnListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- JS 랜더링 -->
+            </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- 3. 모의고사 오답 탭 -->
+        <!-- ============================================== -->
+        <section id="tab-mockexam" class="tab-content space-y-6">
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
+                <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
+                    <div class="bg-blue-100 text-blue-600 p-3 rounded-2xl"><i class="fa-solid fa-file-pen text-xl"></i></div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">모의고사 오답 등록</h3>
+                        <p class="text-xs text-slate-500">학력평가/수능 기출 오답을 별도로 관리하세요.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">시행 월 <span class="text-red-500">*</span></label>
+                            <input type="text" id="meMonth" placeholder="예: 26년 9월 모평" class="w-full py-2.5 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div class="col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">과목 선택 <span class="text-red-500">*</span></label>
+                            <select id="meSubject" class="w-full py-2.5 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                                <option value="국어">국어</option>
+                                <option value="영어">영어</option>
+                                <option value="수학" selected>수학</option>
+                                <option value="탐구">탐구영역</option>
+                            </select>
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">문항 번호 <span class="text-red-500">*</span></label>
+                            <input type="number" id="meNum" placeholder="예: 21" class="w-full py-2.5 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm text-center">
+                        </div>
+                        <div class="col-span-1">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">배점</label>
+                            <select id="meScore" class="w-full py-2.5 px-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                                <option value="2">2점</option>
+                                <option value="3">3점</option>
+                                <option value="4" selected>4점</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">틀린 이유 / 핵심 태그</label>
+                            <input type="text" id="meReason" placeholder="예: 시간부족, 개념미숙 등" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">문제 사진 첨부 (권장)</label>
+                            <div class="relative w-full">
+                                <input type="file" id="meImage" accept="image/*" class="hidden" onchange="previewImage(this, 'mePreview')">
+                                <label for="meImage" class="w-full flex items-center justify-center py-2.5 px-4 border border-dashed border-blue-300 bg-blue-50 text-blue-600 rounded-xl cursor-pointer hover:bg-blue-100 transition text-sm font-medium">
+                                    <i class="fa-solid fa-camera mr-2"></i>모의고사 캡처
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="mePreviewContainer" class="hidden relative inline-block">
+                        <img id="mePreview" src="" alt="미리보기" class="max-h-32 rounded-lg border border-slate-200 shadow-sm">
+                        <button onclick="removeImage('mePreviewContainer', 'meImage')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">출제 의도 및 해설</label>
+                        <textarea id="meSolution" rows="3" placeholder="어떤 개념을 묻는 문제였는지, 어디서 막혔는지 적어보세요." class="w-full py-3 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm resize-none"></textarea>
+                    </div>
+
+                    <button onclick="addWrongNote('mock')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-file-arrow-up"></i><span>모의고사 오답 저장</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="meListContainer" class="grid grid-cols-1 gap-4">
+                <!-- JS 랜더링 -->
+            </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- 4. 영단어/개념 암기카드 탭 -->
+        <!-- ============================================== -->
+        <section id="tab-voca" class="tab-content space-y-6">
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
+                <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
+                    <div class="bg-purple-100 text-purple-600 p-3 rounded-2xl"><i class="fa-solid fa-layer-group text-xl"></i></div>
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900">새 플래시카드 등록</h3>
+                        <p class="text-xs text-slate-500">영단어나 사탐/과탐 핵심 개념을 적어두세요.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">앞면 (문제 / 영단어) <span class="text-red-500">*</span></label>
+                        <input type="text" id="fcFront" placeholder="예: Ubiquitous 또는 뉴턴의 제2법칙" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm font-semibold">
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">AI 간편 입력창</h3>
-                        <p class="text-xs text-slate-500">AI가 정리해준 양식을 통째로 붙여넣으세요.</p>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">뒷면 (정답 / 뜻 / 공식) <span class="text-red-500">*</span></label>
+                        <input type="text" id="fcBack" placeholder="예: 어디에나 존재하는 / F=ma" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm">
                     </div>
                 </div>
+                <button onclick="addFlashcard()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-plus"></i><span>암기 카드 추가</span>
+                </button>
             </div>
 
-            <div class="space-y-4">
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 mb-2">
-                    <p class="font-bold text-indigo-600 mb-1">💡 권장 복사/붙여넣기 양식</p>
-                    <p>단원: 수학(상) - 다항식의 연산</p>
-                    <p>교재/번호: 쎈 B단계 145번</p>
-                    <p>틀린 이유: 부호 실수</p>
-                    <p>풀이 과정: (상세 풀이 및 개념 내용)</p>
-                </div>
-                
-                <textarea id="smartInput" rows="8" placeholder="위 양식에 맞춘 텍스트를 여기에 그대로 붙여넣기 하세요." class="w-full py-4 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm resize-none"></textarea>
-                
-                <button onclick="parseAndAddProblem()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i><span>자동 분석해서 추가하기</span>
-                </button>
+            <div class="flex justify-between items-center mt-8 mb-2 px-2">
+                <p class="text-sm font-bold text-slate-700">👆 카드를 터치(클릭)해서 뒷면 정답을 확인하세요!</p>
+                <span id="fcCountBadge" class="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">0장</span>
+            </div>
+            
+            <!-- 플래시카드 그리드 -->
+            <div id="fcContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- JS 랜더링 -->
             </div>
         </section>
 
-        <!-- 등록된 오답 목록 섹션 -->
-        <section class="space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-900">📝 나의 오답 리스트</h3>
-                <span id="problemCountBadge" class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">0문제 등록됨</span>
-            </div>
 
-            <div id="problemListContainer" class="grid grid-cols-1 gap-4">
-                <!-- JS로 동적 렌더링 -->
+        <!-- ============================================== -->
+        <!-- 5. 스케줄러 (공부/일정 달력) 탭 -->
+        <!-- ============================================== -->
+        <section id="tab-calendar" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 달력 영역 -->
+                <div class="md:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-full transition"><i class="fa-solid fa-chevron-left"></i></button>
+                        <h3 id="calMonthYear" class="text-xl font-bold text-slate-900">2026년 10월</h3>
+                        <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-full transition"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    
+                    <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                        <div class="text-xs font-bold text-red-500">일</div>
+                        <div class="text-xs font-bold text-slate-600">월</div>
+                        <div class="text-xs font-bold text-slate-600">화</div>
+                        <div class="text-xs font-bold text-slate-600">수</div>
+                        <div class="text-xs font-bold text-slate-600">목</div>
+                        <div class="text-xs font-bold text-slate-600">금</div>
+                        <div class="text-xs font-bold text-blue-500">토</div>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid">
+                        <!-- JS 랜더링 -->
+                    </div>
+                </div>
+
+                <!-- 일정 입력 및 목록 영역 -->
+                <div class="md:col-span-1 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="text-lg font-bold text-slate-900 mb-1">📅 선택된 날짜</h3>
+                    <p id="selectedDateText" class="text-indigo-600 font-bold mb-4">날짜를 선택해주세요</p>
+                    
+                    <div class="space-y-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                            <select id="schType" class="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm bg-white font-bold">
+                                <option value="study">📘 공부 계획</option>
+                                <option value="event">📆 일반 일정 (학교, 상담 등)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <input type="text" id="schText" placeholder="내용을 입력하세요" class="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                        </div>
+                        <button onclick="addSchedule()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition shadow-sm text-sm">
+                            추가하기
+                        </button>
+                    </div>
+
+                    <h4 class="text-sm font-bold text-slate-700 mb-2 border-b border-slate-100 pb-2">오늘의 리스트</h4>
+                    <div id="scheduleListContainer" class="flex-grow overflow-y-auto space-y-2 no-scrollbar pr-1 max-h-64">
+                        <p class="text-xs text-slate-400 text-center py-4">일정이 없습니다.</p>
+                    </div>
+                </div>
             </div>
         </section>
 
     </main>
 
-    <!-- 하단 푸터 -->
-    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs relative z-10 mt-12">
-        <p>© 2026 Smart Math Note. Powered by Firebase.</p>
-    </footer>
-
-    <!-- 관리자(데이터 초기화) 모달 -->
-    <div id="adminModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <h3 class="text-lg font-bold text-slate-900">데이터 초기화</h3>
-            <p class="text-xs text-slate-500">모든 오답 노트를 삭제하려면 비밀번호를 입력하세요.</p>
-            <input type="password" id="adminPasswordInput" placeholder="비밀번호 입력" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <div class="flex space-x-2">
-                <button onclick="closeAdminModal()" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-xl text-sm font-bold">취소</button>
-                <button onclick="resetAllData()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl text-sm font-bold">전체 삭제</button>
-            </div>
-        </div>
-    </div>
-
     <!-- 토스트 알림 -->
     <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-4 py-3 rounded-xl shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50"></div>
 
     <script>
-        // 1. 기존 파이어베이스 설정 그대로 연결
+        // ==========================================
+        // 1. 파이어베이스 초기화 및 전역 변수
+        // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyAdhay9Ad7QKzWu5HdAjB0Cmsl851QW6TY",
             authDomain: "digital-diet-d874d.firebaseapp.com",
@@ -135,135 +411,40 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let mathProblems = [];
+        let dbData = {
+            wrongNotes: [], // 내신 오답 (normal) & 모의고사 (mock)
+            flashcards: [], // 영단어/개념 카드
+            schedules: {},  // 스케줄러 { "YYYY-MM-DD": [ {id, type, text, done} ] }
+            settings: { ddayDate: "2026-11-19", ddayName: "기말고사" }
+        };
 
-        // 2. 파이어베이스 실시간 데이터 수신 (데이터베이스 내 'mathNotes' 경로 사용)
-        db.ref('mathNotes').on('value', (snapshot) => {
+        // 데이터 수신
+        db.ref('smartStudy').on('value', (snapshot) => {
             const data = snapshot.val();
-            mathProblems = data ? data : [];
-            renderProblems();
+            if (data) {
+                dbData.wrongNotes = data.wrongNotes || [];
+                dbData.flashcards = data.flashcards || [];
+                dbData.schedules = data.schedules || {};
+                dbData.settings = data.settings || dbData.settings;
+            }
+            renderAll();
         });
 
-        function saveToFirebase() {
-            db.ref('mathNotes').set(mathProblems);
+        function saveData() {
+            db.ref('smartStudy').set(dbData);
         }
 
-        // 3. 텍스트 자동 분석(파싱) 및 추가 함수
-        function parseAndAddProblem() {
-            const rawText = document.getElementById('smartInput').value;
-
-            if (!rawText.trim()) {
-                alert('내용을 입력해주세요.');
-                return;
-            }
-
-            // 정규식을 통한 키워드 추출
-            const chapterMatch = rawText.match(/단원\s*:\s*(.*)/);
-            const numMatch = rawText.match(/교재\/번호\s*:\s*(.*)/);
-            const reasonMatch = rawText.match(/틀린 이유\s*:\s*(.*)/);
-            const solutionMatch = rawText.match(/풀이 과정\s*:\s*([\s\S]*)/);
-
-            const chapter = chapterMatch ? chapterMatch[1].trim() : '';
-            const problemNum = numMatch ? numMatch[1].trim() : '';
-            const reason = reasonMatch ? reasonMatch[1].trim() : '기록 없음';
-            const solution = solutionMatch ? solutionMatch[1].trim() : '기록 없음';
-
-            if (!chapter && !problemNum) {
-                alert("양식에 맞게 입력되지 않았습니다. '단원:' 및 '교재/번호:' 키워드를 포함해주세요.");
-                return;
-            }
-
-            const newProblem = {
-                id: Date.now(),
-                chapter: chapter,
-                problemNum: problemNum,
-                reason: reason,
-                solution: solution,
-                completed: false,
-                date: new Date().toLocaleDateString()
-            };
-
-            mathProblems.unshift(newProblem);
-            saveToFirebase();
-
-            // 입력창 초기화
-            document.getElementById('smartInput').value = '';
-            showToast("✨ 오답이 자동으로 분류되어 추가되었습니다!");
-        }
-
-        // 4. 복습 완료 상태 토글
-        function toggleComplete(id) {
-            const target = mathProblems.find(p => p.id === id);
-            if (target) {
-                target.completed = !target.completed;
-                saveToFirebase();
-            }
-        }
-
-        // 5. 개별 오답 삭제
-        function deleteProblem(id) {
-            if (confirm('이 오답 노트를 삭제하시겠습니까?')) {
-                mathProblems = mathProblems.filter(p => p.id !== id);
-                saveToFirebase();
-                showToast("🗑️ 오답 노트가 삭제되었습니다.");
-            }
-        }
-
-        // 6. 리스트 렌더링
-        function renderProblems() {
-            const container = document.getElementById('problemListContainer');
-            const badge = document.getElementById('problemCountBadge');
+        // ==========================================
+        // 2. 탭 UI 제어
+        // ==========================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
-            badge.innerText = `${mathProblems.length}문제 등록됨`;
-            container.innerHTML = '';
-
-            if (mathProblems.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-white border border-slate-200 rounded-3xl p-8 text-center text-slate-400">
-                        <i class="fa-solid fa-folder-open text-3xl mb-2 text-indigo-300"></i>
-                        <p class="text-sm">등록된 오답이 없습니다. 틀린 문제를 복사해서 붙여넣어 보세요!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            mathProblems.forEach((p) => {
-                const card = document.createElement('div');
-                card.className = `bg-white rounded-2xl p-6 border transition shadow-sm space-y-3 ${p.completed ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200'}`;
-                card.innerHTML = `
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-100 pb-3">
-                        <div class="space-y-1">
-                            <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">${p.chapter || '단원 미상'}</span>
-                            <h4 class="text-base font-extrabold text-slate-900 mt-1">${p.problemNum || '번호 미상'}</h4>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-[10px] text-slate-400">${p.date}</span>
-                            <button onclick="deleteProblem(${p.id})" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1.5 rounded-lg transition">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                            <p class="font-bold text-slate-500 mb-1">❌ 틀린 이유</p>
-                            <p class="text-slate-800 font-medium">${p.reason}</p>
-                        </div>
-                        <div class="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
-                            <p class="font-bold text-indigo-600 mb-1">💡 나만의 풀이 및 해설</p>
-                            <p class="text-slate-800 whitespace-pre-wrap font-medium">${p.solution}</p>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end pt-2">
-                        <button onclick="toggleComplete(${p.id})" class="text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 ${p.completed ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}">
-                            <i class="fa-solid ${p.completed ? 'fa-check-double' : 'fa-check'}"></i>
-                            <span>${p.completed ? '복습 완료됨 (다시 풀기)' : '복습 완료 체크'}</span>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active');
+            
+            if(tabId === 'tab-calendar' && !currentDate) { initCalendar(); }
         }
 
         function showToast(msg) {
@@ -273,29 +454,386 @@
             setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2000);
         }
 
-        // 관리자 모달 제어
-        function openAdminModal() {
-            document.getElementById('adminModal').classList.remove('hidden');
-            document.getElementById('adminModal').classList.add('flex');
-            document.getElementById('adminPasswordInput').value = '';
-        }
-        function closeAdminModal() {
-            document.getElementById('adminModal').classList.remove('flex');
-            document.getElementById('adminModal').classList.add('hidden');
-        }
-        function resetAllData() {
-            const pwd = document.getElementById('adminPasswordInput').value;
-            if (pwd === 'wogud201007@') {
-                if (confirm('정말로 모든 오답 노트를 삭제하시겠습니까?')) {
-                    mathProblems = [];
-                    saveToFirebase();
-                    closeAdminModal();
-                    showToast("⚠️ 모든 데이터가 초기화되었습니다.");
-                }
-            } else {
-                alert('비밀번호가 일치하지 않습니다.');
+        // ==========================================
+        // 3. 사진(이미지) 첨부 공통 로직 (Base64 변환)
+        // ==========================================
+        function previewImage(input, previewId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = document.getElementById(previewId);
+                    img.src = e.target.result;
+                    document.getElementById(previewId + 'Container').classList.remove('hidden');
+                };
+                reader.readAsDataURL(input.files[0]);
             }
         }
+
+        function removeImage(containerId, inputId) {
+            document.getElementById(containerId).classList.add('hidden');
+            document.getElementById(inputId).value = '';
+            document.getElementById(containerId.replace('Container', '')).src = '';
+        }
+
+        // ==========================================
+        // 4. 오답노트 (내신 & 모의고사) 로직
+        // ==========================================
+        let currentFilter = '전체';
+
+        function addWrongNote(type) {
+            let note = { id: Date.now(), type: type, date: new Date().toLocaleDateString(), completed: false, revCount: 0 };
+            
+            if (type === 'normal') {
+                const sbj = document.getElementById('wnSubject').value;
+                const title = document.getElementById('wnTitle').value.trim();
+                const sol = document.getElementById('wnSolution').value.trim();
+                
+                // AI 텍스트 자동 파싱 지원 (솔루션 칸에 통째로 붙여넣은 경우)
+                if (title === '' && sol.includes('단원:')) {
+                    const sbjMatch = sol.match(/과목\s*:\s*(.*)/);
+                    const chMatch = sol.match(/단원\s*:\s*(.*)/);
+                    const numMatch = sol.match(/교재\/번호\s*:\s*(.*)/);
+                    const rsMatch = sol.match(/틀린 이유\s*:\s*(.*)/);
+                    const slMatch = sol.match(/풀이 과정\s*:\s*([\s\S]*)/);
+
+                    note.subject = sbjMatch ? sbjMatch[1].trim() : sbj;
+                    note.title = (chMatch ? chMatch[1].trim() : '') + " / " + (numMatch ? numMatch[1].trim() : '');
+                    note.reason = rsMatch ? rsMatch[1].trim() : '';
+                    note.solution = slMatch ? slMatch[1].trim() : sol;
+                } else {
+                    if(!title) return alert("단원 및 교재/번호를 입력해주세요.");
+                    note.subject = sbj;
+                    note.title = title;
+                    note.reason = document.getElementById('wnReason').value.trim();
+                    note.solution = sol;
+                }
+                const img = document.getElementById('wnPreview').src;
+                if(img && !img.endsWith(window.location.pathname)) note.image = img;
+
+            } else if (type === 'mock') {
+                const mon = document.getElementById('meMonth').value.trim();
+                const num = document.getElementById('meNum').value.trim();
+                if(!mon || !num) return alert("시행 월과 문항 번호를 입력해주세요.");
+                
+                note.subject = document.getElementById('meSubject').value;
+                note.month = mon;
+                note.num = num;
+                note.score = document.getElementById('meScore').value;
+                note.reason = document.getElementById('meReason').value.trim();
+                note.solution = document.getElementById('meSolution').value.trim();
+                
+                const img = document.getElementById('mePreview').src;
+                if(img && !img.endsWith(window.location.pathname)) note.image = img;
+            }
+
+            dbData.wrongNotes.unshift(note);
+            saveData();
+            
+            // 폼 초기화
+            if(type === 'normal') {
+                document.getElementById('wnTitle').value = ''; document.getElementById('wnReason').value = ''; document.getElementById('wnSolution').value = ''; removeImage('wnPreviewContainer', 'wnImage');
+            } else {
+                document.getElementById('meMonth').value = ''; document.getElementById('meNum').value = ''; document.getElementById('meReason').value = ''; document.getElementById('meSolution').value = ''; removeImage('mePreviewContainer', 'meImage');
+            }
+            showToast("오답 노트가 저장되었습니다.");
+        }
+
+        function toggleNoteComplete(id) {
+            const t = dbData.wrongNotes.find(n => n.id === id);
+            if(t) { t.completed = !t.completed; if(t.completed) t.revCount = (t.revCount||0)+1; saveData(); }
+        }
+        function deleteNote(id) {
+            if(confirm('삭제하시겠습니까?')) { dbData.wrongNotes = dbData.wrongNotes.filter(n => n.id !== id); saveData(); }
+        }
+        function filterList(type, sbj) {
+            currentFilter = sbj;
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-slate-800', 'text-white'); b.classList.add('bg-slate-100', 'text-slate-600');
+            });
+            event.target.classList.remove('bg-slate-100', 'text-slate-600'); event.target.classList.add('bg-slate-800', 'text-white');
+            renderNotes();
+        }
+
+        function renderNotes() {
+            // 내신(Normal) 렌더링
+            const nContainer = document.getElementById('wnListContainer');
+            let nList = dbData.wrongNotes.filter(n => n.type === 'normal');
+            if(currentFilter !== '전체') nList = nList.filter(n => n.subject === currentFilter);
+            document.getElementById('wnCountBadge').innerText = `${nList.length}개`;
+            
+            nContainer.innerHTML = '';
+            nList.forEach(n => {
+                const sbjColor = n.subject==='수학'?'bg-blue-100 text-blue-700':n.subject==='영어'?'bg-amber-100 text-amber-700':n.subject==='국어'?'bg-rose-100 text-rose-700':'bg-emerald-100 text-emerald-700';
+                nContainer.innerHTML += `
+                    <div class="bg-white rounded-2xl p-5 border ${n.completed ? 'border-indigo-300 bg-indigo-50/30' : 'border-slate-200'} flex flex-col h-full shadow-sm relative">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="space-y-1">
+                                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded ${sbjColor}">${n.subject}</span>
+                                <h4 class="font-bold text-slate-800 text-sm leading-snug">${n.title}</h4>
+                            </div>
+                            <button onclick="deleteNote(${n.id})" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                        ${n.image ? `<img src="${n.image}" class="w-full h-32 object-cover rounded-lg mb-3 border border-slate-200" onclick="window.open('${n.image}')">` : ''}
+                        <div class="flex-grow space-y-2 text-xs">
+                            ${n.reason ? `<div class="bg-slate-50 p-2 rounded border border-slate-100"><span class="text-red-500 font-bold mr-1">이유</span>${n.reason}</div>` : ''}
+                            ${n.solution ? `<div class="bg-indigo-50/50 p-2 rounded border border-indigo-100"><span class="text-indigo-600 font-bold mr-1">풀이</span><p class="mt-1 whitespace-pre-wrap">${n.solution}</p></div>` : ''}
+                        </div>
+                        <div class="mt-3 flex justify-between items-center border-t border-slate-100 pt-3">
+                            <span class="text-[10px] text-slate-400">복습 ${n.revCount||0}회 • ${n.date}</span>
+                            <button onclick="toggleNoteComplete(${n.id})" class="text-xs font-bold px-3 py-1.5 rounded-lg transition ${n.completed ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                <i class="fa-solid ${n.completed ? 'fa-check-double' : 'fa-check'} mr-1"></i>${n.completed ? '복습완료' : '복습하기'}
+                            </button>
+                        </div>
+                    </div>`;
+            });
+
+            // 모의고사(Mock) 렌더링
+            const mContainer = document.getElementById('meListContainer');
+            let mList = dbData.wrongNotes.filter(n => n.type === 'mock');
+            mContainer.innerHTML = '';
+            mList.forEach(n => {
+                mContainer.innerHTML += `
+                    <div class="bg-white rounded-2xl p-5 border ${n.completed ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200'} flex flex-col shadow-sm">
+                        <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded">${n.month}</span>
+                                <span class="text-sm font-extrabold text-blue-600">${n.subject} ${n.num}번 (${n.score}점)</span>
+                            </div>
+                            <button onclick="deleteNote(${n.id})" class="text-slate-300 hover:text-red-500 transition"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
+                        ${n.image ? `<img src="${n.image}" class="max-w-xs rounded-lg mb-3 border border-slate-200" onclick="window.open('${n.image}')">` : ''}
+                        <div class="space-y-2 text-xs">
+                            ${n.reason ? `<p><strong class="text-slate-600">핵심태그:</strong> ${n.reason}</p>` : ''}
+                            ${n.solution ? `<div class="bg-slate-50 p-3 rounded-xl border border-slate-100 whitespace-pre-wrap">${n.solution}</div>` : ''}
+                        </div>
+                        <div class="mt-3 text-right">
+                            <button onclick="toggleNoteComplete(${n.id})" class="text-xs font-bold px-4 py-2 rounded-xl transition ${n.completed ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}">
+                                ${n.completed ? '분석 완벽 숙지' : '다시 풀어보기'}
+                            </button>
+                        </div>
+                    </div>`;
+            });
+            updateDashboardStats();
+        }
+
+        // ==========================================
+        // 5. 영단어/개념 카드 (플래시카드)
+        // ==========================================
+        function addFlashcard() {
+            const f = document.getElementById('fcFront').value.trim();
+            const b = document.getElementById('fcBack').value.trim();
+            if(!f || !b) return alert('앞뒷면 내용을 모두 입력하세요.');
+            dbData.flashcards.unshift({id: Date.now(), front: f, back: b});
+            saveData();
+            document.getElementById('fcFront').value=''; document.getElementById('fcBack').value='';
+            showToast('카드가 추가되었습니다.');
+        }
+        function deleteCard(e, id) {
+            e.stopPropagation();
+            if(confirm('삭제할까요?')) { dbData.flashcards = dbData.flashcards.filter(c=>c.id!==id); saveData(); }
+        }
+        function renderCards() {
+            const c = document.getElementById('fcContainer');
+            document.getElementById('fcCountBadge').innerText = `${dbData.flashcards.length}장`;
+            c.innerHTML = '';
+            dbData.flashcards.forEach(card => {
+                c.innerHTML += `
+                    <div class="flashcard group" onclick="this.classList.toggle('flipped')">
+                        <div class="flashcard-inner shadow-sm group-hover:shadow-md transition">
+                            <div class="flashcard-front">
+                                <button onclick="deleteCard(event, ${card.id})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 z-10"><i class="fa-solid fa-xmark"></i></button>
+                                <p class="font-extrabold text-lg text-slate-800 break-words">${card.front}</p>
+                            </div>
+                            <div class="flashcard-back">
+                                <p class="font-bold text-base break-words">${card.back}</p>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // ==========================================
+        // 6. 스케줄러 (달력)
+        // ==========================================
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+        let selectedDate = '';
+
+        function initCalendar() {
+            renderCalendar();
+            selectDate(new Date().toLocaleDateString('sv-SE')); // YYYY-MM-DD
+        }
+
+        function changeMonth(offset) {
+            currentMonth += offset;
+            if(currentMonth < 0) { currentMonth = 11; currentYear--; }
+            else if(currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            document.getElementById('calMonthYear').innerText = `${currentYear}년 ${currentMonth + 1}월`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const todayStr = new Date().toLocaleDateString('sv-SE');
+
+            for (let i = 0; i < firstDay; i++) { grid.innerHTML += `<div></div>`; }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = dateStr === todayStr;
+                const isSel = dateStr === selectedDate;
+                const schs = dbData.schedules[dateStr] || [];
+                
+                let dots = '';
+                let hasStudy = schs.some(s=>s.type==='study');
+                let hasEvent = schs.some(s=>s.type==='event');
+                if(hasStudy) dots += `<div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>`;
+                if(hasEvent) dots += `<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>`;
+
+                grid.innerHTML += `
+                    <div onclick="selectDate('${dateStr}')" class="calendar-day ${isToday ? 'today' : ''} ${isSel ? 'ring-2 ring-indigo-500' : ''}">
+                        <span class="text-xs font-bold ${isToday?'text-indigo-600':'text-slate-700'}">${d}</span>
+                        <div class="flex space-x-1 justify-center mt-auto pb-1">${dots}</div>
+                    </div>`;
+            }
+        }
+
+        function selectDate(dateStr) {
+            selectedDate = dateStr;
+            document.getElementById('selectedDateText').innerText = dateStr;
+            renderCalendar(); // 선택 테두리 갱신
+            renderScheduleList();
+        }
+
+        function addSchedule() {
+            if(!selectedDate) return alert("날짜를 먼저 선택하세요.");
+            const txt = document.getElementById('schText').value.trim();
+            if(!txt) return;
+            const type = document.getElementById('schType').value;
+            
+            if(!dbData.schedules[selectedDate]) dbData.schedules[selectedDate] = [];
+            dbData.schedules[selectedDate].push({ id: Date.now(), type: type, text: txt, done: false });
+            saveData();
+            document.getElementById('schText').value = '';
+            showToast("일정이 추가되었습니다.");
+        }
+
+        function toggleSchDone(date, id) {
+            const s = dbData.schedules[date].find(x=>x.id===id);
+            if(s) { s.done = !s.done; saveData(); }
+        }
+        function delSch(date, id) {
+            dbData.schedules[date] = dbData.schedules[date].filter(x=>x.id!==id);
+            if(dbData.schedules[date].length === 0) delete dbData.schedules[date];
+            saveData();
+        }
+
+        function renderScheduleList() {
+            const list = dbData.schedules[selectedDate] || [];
+            const c = document.getElementById('scheduleListContainer');
+            c.innerHTML = '';
+            if(list.length === 0) { c.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">일정이 없습니다.</p>'; return; }
+            
+            list.forEach(s => {
+                const isStudy = s.type === 'study';
+                const color = isStudy ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-amber-600 bg-amber-50 border-amber-100';
+                c.innerHTML += `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${color} ${s.done?'opacity-50 line-through':''}">
+                        <div class="flex items-center space-x-2 overflow-hidden">
+                            <button onclick="toggleSchDone('${selectedDate}', ${s.id})" class="text-lg focus:outline-none"><i class="fa-regular ${s.done?'fa-square-check':'fa-square'}"></i></button>
+                            <span class="text-xs font-bold truncate">${isStudy?'📘':'📆'} ${s.text}</span>
+                        </div>
+                        <button onclick="delSch('${selectedDate}', ${s.id})" class="text-slate-400 hover:text-red-500 ml-2"><i class="fa-solid fa-xmark text-xs"></i></button>
+                    </div>`;
+            });
+        }
+
+        // ==========================================
+        // 7. 대시보드 (D-Day & 타이머 & 통계)
+        // ==========================================
+        let timerInterval;
+        let timeLeft = 25 * 60;
+        
+        function setDday() {
+            const name = prompt("시험 이름을 입력하세요 (예: 기말고사)", dbData.settings.ddayName);
+            if(!name) return;
+            const dStr = prompt("날짜를 입력하세요 (예: 2026-12-10)", dbData.settings.ddayDate);
+            if(new Date(dStr) == "Invalid Date") return alert("올바른 날짜 형식이 아닙니다.");
+            dbData.settings.ddayName = name; dbData.settings.ddayDate = dStr;
+            saveData();
+        }
+
+        function updateDday() {
+            const dDate = new Date(dbData.settings.ddayDate);
+            dDate.setHours(0,0,0,0);
+            const now = new Date(); now.setHours(0,0,0,0);
+            const diff = Math.ceil((dDate - now) / (1000 * 60 * 60 * 24));
+            document.getElementById('ddayTitle').innerText = `${dbData.settings.ddayName}까지`;
+            document.getElementById('ddayCounter').innerText = diff > 0 ? `D-${diff}` : diff === 0 ? "D-Day!" : `D+${Math.abs(diff)}`;
+        }
+
+        function setTimer(min) { clearInterval(timerInterval); timeLeft = min * 60; updateTimerDisp(); resetTimerBtns(); }
+        function startTimer() { 
+            document.getElementById('btnTimerStart').classList.add('hidden'); document.getElementById('btnTimerPause').classList.remove('hidden');
+            timerInterval = setInterval(() => {
+                if(timeLeft > 0) { timeLeft--; updateTimerDisp(); }
+                else { pauseTimer(); alert("타이머가 종료되었습니다! 휴식하세요."); }
+            }, 1000);
+        }
+        function pauseTimer() { clearInterval(timerInterval); resetTimerBtns(); }
+        function resetTimer() { pauseTimer(); setTimer(25); }
+        function resetTimerBtns() { document.getElementById('btnTimerStart').classList.remove('hidden'); document.getElementById('btnTimerPause').classList.add('hidden'); }
+        function updateTimerDisp() {
+            const m = Math.floor(timeLeft / 60); const s = timeLeft % 60;
+            document.getElementById('timerDisplay').innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        function updateDashboardStats() {
+            const c = document.getElementById('statCards');
+            c.innerHTML = '';
+            const subjects = ['국어', '영어', '수학', '사회', '과학', '탐구'];
+            const counts = {}; subjects.forEach(s=>counts[s]=0);
+            dbData.wrongNotes.forEach(n => { if(counts[n.subject]!==undefined) counts[n.subject]++; });
+            
+            ['국어','영어','수학','사회','과학'].forEach(s => {
+                let cnt = counts[s];
+                if(s==='사회'||s==='과학') cnt += counts['탐구']/2; // 탐구 합산 (단순 분배)
+                c.innerHTML += `
+                    <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                        <p class="text-[10px] font-bold text-slate-500 mb-1">${s}</p>
+                        <p class="text-xl font-extrabold text-slate-800">${Math.floor(cnt)}</p>
+                    </div>`;
+            });
+        }
+
+        // ==========================================
+        // 8. 초기화 및 관리
+        // ==========================================
+        function renderAll() {
+            renderNotes();
+            renderCards();
+            if(selectedDate) { renderCalendar(); renderScheduleList(); }
+            updateDday();
+            updateDashboardStats();
+        }
+
+        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); document.getElementById('adminModal').classList.add('flex'); }
+        function closeAdminModal() { document.getElementById('adminModal').classList.remove('flex'); document.getElementById('adminModal').classList.add('hidden'); }
+        function resetAllData() {
+            if (document.getElementById('adminPasswordInput').value === 'wogud201007@') {
+                if (confirm('모든 데이터를 초기화하시겠습니까?')) {
+                    dbData = { wrongNotes: [], flashcards: [], schedules: {}, settings: dbData.settings };
+                    saveData(); closeAdminModal(); showToast("데이터가 초기화되었습니다.");
+                }
+            } else { alert("비밀번호 오류"); }
+        }
+
+        // 초기 실행
+        updateTimerDisp();
     </script>
 </body>
 </html>
