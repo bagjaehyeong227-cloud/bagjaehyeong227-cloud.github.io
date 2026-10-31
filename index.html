@@ -19,27 +19,23 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* 탭 버튼 활성화 스타일 */
         .tab-btn { position: relative; transition: all 0.3s ease; }
         .tab-btn.active { color: #4f46e5; font-weight: 700; border-bottom: 3px solid #4f46e5; }
         .tab-btn:not(.active) { color: #64748b; font-weight: 500; border-bottom: 3px solid transparent; }
         .tab-btn:not(.active):hover { color: #475569; border-bottom: 3px solid #cbd5e1; }
 
-        /* 섹션 전환 (페이드 인) */
         .tab-content { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
         .tab-content.active { display: block; opacity: 1; }
 
-        /* 달력 그리드 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day { aspect-ratio: 1; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.25rem; display: flex; flex-direction: column; cursor: pointer; transition: all 0.2s; background: white; }
         .calendar-day:hover { border-color: #818cf8; background-color: #f8fafc; }
         .calendar-day.today { border-color: #4f46e5; background-color: #eef2ff; border-width: 2px; }
         
-        /* 플래시카드 뒤집기 */
-        .flashcard { perspective: 1000px; cursor: pointer; height: 160px; }
+        .flashcard { perspective: 1000px; cursor: pointer; height: 200px; }
         .flashcard-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
         .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
-        .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 1rem; padding: 1.5rem; text-align: center; }
+        .flashcard-front, .flashcard-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; border-radius: 1rem; padding: 1rem; text-align: center; }
         .flashcard-front { background-color: white; border: 1px solid #e2e8f0; }
         .flashcard-back { background-color: #4f46e5; color: white; transform: rotateY(180deg); border: 1px solid #4338ca; }
     </style>
@@ -57,7 +53,6 @@
                     <h1 class="text-base md:text-lg font-extrabold text-slate-900 tracking-tight">Smart Study Platform</h1>
                 </div>
             </div>
-            <!-- 관리자 모드 버튼 -->
             <button onclick="openAdminModal()" class="text-slate-400 hover:text-indigo-600 p-2 transition" title="데이터 초기화">
                 <i class="fa-solid fa-gear text-lg"></i>
             </button>
@@ -68,7 +63,7 @@
             <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn active px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-chart-pie mr-2"></i>대시보드</button>
             <button onclick="switchTab('tab-wrongnote')" id="btn-tab-wrongnote" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-book-open mr-2"></i>내신 오답노트</button>
             <button onclick="switchTab('tab-mockexam')" id="btn-tab-mockexam" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-file-pen mr-2"></i>모의고사 오답</button>
-            <button onclick="switchTab('tab-voca')" id="btn-tab-voca" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-layer-group mr-2"></i>영단어/개념 카드</button>
+            <button onclick="switchTab('tab-voca')" id="btn-tab-voca" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-layer-group mr-2"></i>영단어/유튜브</button>
             <button onclick="switchTab('tab-calendar')" id="btn-tab-calendar" class="tab-btn px-4 py-2 text-sm md:text-base whitespace-nowrap"><i class="fa-solid fa-calendar-days mr-2"></i>스케줄러</button>
         </div>
     </header>
@@ -76,7 +71,7 @@
     <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full relative z-10">
 
         <!-- ============================================== -->
-        <!-- 1. 대시보드 (통계) 탭 -->
+        <!-- 1. 대시보드 탭 (타이머 제거 & 오늘의 일정 연동) -->
         <!-- ============================================== -->
         <section id="tab-dashboard" class="tab-content active space-y-6">
             <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-blue-950 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
@@ -85,38 +80,30 @@
                     <h2 class="text-2xl md:text-3xl font-extrabold leading-snug mt-3">
                         오늘도 목표를 향해 달려보세요! 🚀
                     </h2>
-                    <p class="text-slate-300 text-sm mt-2">D-Day 타이머와 함께 집중력을 높이고 과목별 오답 통계를 확인하세요.</p>
+                    <p class="text-slate-300 text-sm mt-2">D-Day 카운트다운과 오늘 해야 할 일정을 확인하세요.</p>
                 </div>
             </div>
 
-            <!-- D-Day 및 뽀모도로 타이머 -->
+            <!-- D-Day 및 오늘의 일정 요약 박스 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-slate-800"><i class="fa-solid fa-flag-checkered text-indigo-500 mr-2"></i>시험 D-Day</h3>
                         <button onclick="setDday()" class="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">설정</button>
                     </div>
-                    <div class="text-center py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div class="text-center py-6 bg-slate-50 rounded-2xl border border-slate-100">
                         <p id="ddayTitle" class="text-sm font-medium text-slate-500 mb-1">다음 시험까지</p>
                         <p id="ddayCounter" class="text-4xl font-extrabold text-indigo-600">D-00</p>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-slate-800"><i class="fa-solid fa-stopwatch text-emerald-500 mr-2"></i>집중 타이머</h3>
-                        <div class="space-x-1">
-                            <button onclick="setTimer(25)" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition">25분</button>
-                            <button onclick="setTimer(50)" class="text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md transition">50분</button>
-                        </div>
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800"><i class="fa-solid fa-list-check text-emerald-500 mr-2"></i>오늘의 할 일 (Today)</h3>
+                        <span id="todayDateBadge" class="text-xs text-slate-400 font-medium"></span>
                     </div>
-                    <div class="text-center py-4 bg-slate-900 rounded-2xl shadow-inner relative">
-                        <p id="timerDisplay" class="text-4xl font-mono font-extrabold text-emerald-400 tracking-wider">25:00</p>
-                        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-3">
-                            <button onclick="startTimer()" id="btnTimerStart" class="text-white hover:text-emerald-400 transition"><i class="fa-solid fa-play"></i></button>
-                            <button onclick="pauseTimer()" id="btnTimerPause" class="text-white hover:text-amber-400 transition hidden"><i class="fa-solid fa-pause"></i></button>
-                            <button onclick="resetTimer()" class="text-white hover:text-red-400 transition"><i class="fa-solid fa-rotate-right"></i></button>
-                        </div>
+                    <div id="dashboardTodayList" class="flex-grow overflow-y-auto space-y-2 max-h-40 no-scrollbar">
+                        <p class="text-xs text-slate-400 text-center py-8">오늘 등록된 일정이 없습니다.</p>
                     </div>
                 </div>
             </div>
@@ -144,7 +131,6 @@
                     </div>
                 </div>
 
-                <!-- 수동 / 사진 첨부 폼 -->
                 <div class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="md:col-span-1">
@@ -179,7 +165,6 @@
                         </div>
                     </div>
                     
-                    <!-- 이미지 미리보기 영역 -->
                     <div id="wnPreviewContainer" class="hidden relative inline-block">
                         <img id="wnPreview" src="" alt="미리보기" class="max-h-32 rounded-lg border border-slate-200 shadow-sm">
                         <button onclick="removeImage('wnPreviewContainer', 'wnImage')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"><i class="fa-solid fa-xmark"></i></button>
@@ -296,27 +281,52 @@
 
 
         <!-- ============================================== -->
-        <!-- 4. 영단어/개념 암기카드 탭 -->
+        <!-- 4. 영단어 & 유튜브 학습 보관함 탭 -->
         <!-- ============================================== -->
         <section id="tab-voca" class="tab-content space-y-6">
+            <!-- 유튜브 학습 보관함 (옵션 B) -->
+            <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
+                    <div class="bg-rose-100 text-rose-600 p-3 rounded-2xl"><i class="fa-brands fa-youtube text-xl"></i></div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">유튜브 학습 보관함</h3>
+                        <p class="text-xs text-slate-500">공부 중인 유튜버 영상 링크를 등록해두세요.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="ytLinkInput" placeholder="유튜브 링크 입력 (예: https://youtu.be/...)" class="flex-grow py-2 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500">
+                    <input type="text" id="ytTitleInput" placeholder="영상 제목 (예: 수능 영단어 특강)" class="w-1/3 py-2 px-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-rose-500">
+                    <button onclick="addYoutubeVideo()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-4 py-2 rounded-xl text-xs whitespace-nowrap transition">영상 추가</button>
+                </div>
+                <!-- 가로 스크롤 썸네일 리스트 -->
+                <div id="ytListContainer" class="flex space-x-3 overflow-x-auto pb-2 pt-1 no-scrollbar">
+                    <p class="text-xs text-slate-400 py-2">등록된 유튜브 영상이 없습니다.</p>
+                </div>
+            </div>
+
+            <!-- 플래시카드 등록 -->
             <div class="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200 space-y-6">
                 <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
                     <div class="bg-purple-100 text-purple-600 p-3 rounded-2xl"><i class="fa-solid fa-layer-group text-xl"></i></div>
                     <div>
                         <h3 class="text-xl font-bold text-slate-900">새 플래시카드 등록</h3>
-                        <p class="text-xs text-slate-500">영단어나 사탐/과탐 핵심 개념을 적어두세요.</p>
+                        <p class="text-xs text-slate-500">단어 뜻과 타임스탬프가 포함된 유튜브 링크를 함께 넣으세요.</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">앞면 (문제 / 영단어) <span class="text-red-500">*</span></label>
-                        <input type="text" id="fcFront" placeholder="예: Ubiquitous 또는 뉴턴의 제2법칙" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm font-semibold">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">앞면 (영단어 / 개념) <span class="text-red-500">*</span></label>
+                        <input type="text" id="fcFront" placeholder="예: Ubiquitous" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">뒷면 (정답 / 뜻 / 공식) <span class="text-red-500">*</span></label>
-                        <input type="text" id="fcBack" placeholder="예: 어디에나 존재하는 / F=ma" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">뒷면 뜻 / 설명 <span class="text-red-500">*</span></label>
+                        <input type="text" id="fcBack" placeholder="예: 어디에나 존재하는" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm">
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">타임스탬프 유튜브 링크 (선택)</label>
+                    <input type="text" id="fcYtLink" placeholder="예: https://youtu.be/영상ID?t=83 (특정 시간 포함 링크)" class="w-full py-2.5 px-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm">
                 </div>
                 <button onclick="addFlashcard()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition shadow-md flex items-center justify-center gap-2 text-sm">
                     <i class="fa-solid fa-plus"></i><span>암기 카드 추가</span>
@@ -324,11 +334,10 @@
             </div>
 
             <div class="flex justify-between items-center mt-8 mb-2 px-2">
-                <p class="text-sm font-bold text-slate-700">👆 카드를 터치(클릭)해서 뒷면 정답을 확인하세요!</p>
+                <p class="text-sm font-bold text-slate-700">👆 카드를 터치하면 뒤집히고, 뒷면 썸네일을 누르면 해당 구간 영상이 재생됩니다!</p>
                 <span id="fcCountBadge" class="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">0장</span>
             </div>
             
-            <!-- 플래시카드 그리드 -->
             <div id="fcContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <!-- JS 랜더링 -->
             </div>
@@ -336,7 +345,7 @@
 
 
         <!-- ============================================== -->
-        <!-- 5. 스케줄러 (공부/일정 달력) 탭 -->
+        <!-- 5. 스케줄러 & 망각 곡선 복습 추천 탭 -->
         <!-- ============================================== -->
         <section id="tab-calendar" class="tab-content space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -362,29 +371,35 @@
                     </div>
                 </div>
 
-                <!-- 일정 입력 및 목록 영역 -->
-                <div class="md:col-span-1 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col">
-                    <h3 class="text-lg font-bold text-slate-900 mb-1">📅 선택된 날짜</h3>
-                    <p id="selectedDateText" class="text-indigo-600 font-bold mb-4">날짜를 선택해주세요</p>
-                    
-                    <div class="space-y-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div>
-                            <select id="schType" class="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm bg-white font-bold">
+                <!-- 일정 입력 및 복습 추천 영역 -->
+                <div class="md:col-span-1 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex flex-col space-y-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1">📅 선택된 날짜</h3>
+                        <p id="selectedDateText" class="text-indigo-600 font-bold mb-3">날짜를 선택해주세요</p>
+                        
+                        <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <select id="schType" class="w-full py-1.5 px-3 border border-slate-300 rounded-lg text-xs bg-white font-bold">
                                 <option value="study">📘 공부 계획</option>
                                 <option value="event">📆 일반 일정 (학교, 상담 등)</option>
                             </select>
+                            <input type="text" id="schText" placeholder="내용을 입력하세요" class="w-full py-1.5 px-3 border border-slate-300 rounded-lg text-xs">
+                            <button onclick="addSchedule()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-xs transition">일정 추가</button>
                         </div>
-                        <div>
-                            <input type="text" id="schText" placeholder="내용을 입력하세요" class="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
-                        </div>
-                        <button onclick="addSchedule()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg transition shadow-sm text-sm">
-                            추가하기
-                        </button>
                     </div>
 
-                    <h4 class="text-sm font-bold text-slate-700 mb-2 border-b border-slate-100 pb-2">오늘의 리스트</h4>
-                    <div id="scheduleListContainer" class="flex-grow overflow-y-auto space-y-2 no-scrollbar pr-1 max-h-64">
-                        <p class="text-xs text-slate-400 text-center py-4">일정이 없습니다.</p>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700 mb-2 border-b border-slate-100 pb-1">오늘의 리스트</h4>
+                        <div id="scheduleListContainer" class="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                            <p class="text-[11px] text-slate-400 text-center py-2">일정이 없습니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- 망각 곡선 복습 추천 오답 영역 -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+                        <h4 class="text-xs font-bold text-amber-800 flex items-center"><i class="fa-solid fa-lightbulb mr-1.5"></i>💡 망각 곡선 복습 추천</h4>
+                        <div id="reviewRecommendationList" class="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
+                            <p class="text-[11px] text-amber-600/70 text-center py-2">이날 복습할 추천 오답이 없습니다.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -397,7 +412,7 @@
 
     <script>
         // ==========================================
-        // 1. 파이어베이스 초기화 및 전역 변수
+        // 1. 파이어베이스 설정 및 데이터 동기화
         // ==========================================
         const firebaseConfig = {
             apiKey: "AIzaSyAdhay9Ad7QKzWu5HdAjB0Cmsl851QW6TY",
@@ -412,18 +427,19 @@
         const db = firebase.database();
 
         let dbData = {
-            wrongNotes: [], // 내신 오답 (normal) & 모의고사 (mock)
-            flashcards: [], // 영단어/개념 카드
-            schedules: {},  // 스케줄러 { "YYYY-MM-DD": [ {id, type, text, done} ] }
+            wrongNotes: [], 
+            flashcards: [], 
+            youtubeVideos: [], // 유튜브 보관함
+            schedules: {},  
             settings: { ddayDate: "2026-11-19", ddayName: "기말고사" }
         };
 
-        // 데이터 수신
-        db.ref('smartStudy').on('value', (snapshot) => {
+        db.ref('smartStudyPlatform').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 dbData.wrongNotes = data.wrongNotes || [];
                 dbData.flashcards = data.flashcards || [];
+                dbData.youtubeVideos = data.youtubeVideos || [];
                 dbData.schedules = data.schedules || {};
                 dbData.settings = data.settings || dbData.settings;
             }
@@ -431,20 +447,18 @@
         });
 
         function saveData() {
-            db.ref('smartStudy').set(dbData);
+            db.ref('smartStudyPlatform').set(dbData);
         }
 
         // ==========================================
-        // 2. 탭 UI 제어
+        // 2. 탭 제어 및 유틸리티
         // ==========================================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active');
-            
-            if(tabId === 'tab-calendar' && !currentDate) { initCalendar(); }
+            if(tabId === 'tab-calendar' && !selectedDate) { initCalendar(); }
         }
 
         function showToast(msg) {
@@ -454,9 +468,14 @@
             setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2000);
         }
 
-        // ==========================================
-        // 3. 사진(이미지) 첨부 공통 로직 (Base64 변환)
-        // ==========================================
+        // 유튜브 URL에서 고유 ID 추출 헬퍼
+        function getYoutubeId(url) {
+            if(!url) return '';
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
         function previewImage(input, previewId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -476,19 +495,18 @@
         }
 
         // ==========================================
-        // 4. 오답노트 (내신 & 모의고사) 로직
+        // 3. 오답노트 로직 (내신 & 모의고사)
         // ==========================================
         let currentFilter = '전체';
 
         function addWrongNote(type) {
-            let note = { id: Date.now(), type: type, date: new Date().toLocaleDateString(), completed: false, revCount: 0 };
+            let note = { id: Date.now(), type: type, rawDate: new Date().toISOString().split('T')[0], date: new Date().toLocaleDateString(), completed: false, revCount: 0 };
             
             if (type === 'normal') {
                 const sbj = document.getElementById('wnSubject').value;
                 const title = document.getElementById('wnTitle').value.trim();
                 const sol = document.getElementById('wnSolution').value.trim();
                 
-                // AI 텍스트 자동 파싱 지원 (솔루션 칸에 통째로 붙여넣은 경우)
                 if (title === '' && sol.includes('단원:')) {
                     const sbjMatch = sol.match(/과목\s*:\s*(.*)/);
                     const chMatch = sol.match(/단원\s*:\s*(.*)/);
@@ -529,7 +547,6 @@
             dbData.wrongNotes.unshift(note);
             saveData();
             
-            // 폼 초기화
             if(type === 'normal') {
                 document.getElementById('wnTitle').value = ''; document.getElementById('wnReason').value = ''; document.getElementById('wnSolution').value = ''; removeImage('wnPreviewContainer', 'wnImage');
             } else {
@@ -555,7 +572,6 @@
         }
 
         function renderNotes() {
-            // 내신(Normal) 렌더링
             const nContainer = document.getElementById('wnListContainer');
             let nList = dbData.wrongNotes.filter(n => n.type === 'normal');
             if(currentFilter !== '전체') nList = nList.filter(n => n.subject === currentFilter);
@@ -587,7 +603,6 @@
                     </div>`;
             });
 
-            // 모의고사(Mock) 렌더링
             const mContainer = document.getElementById('meListContainer');
             let mList = dbData.wrongNotes.filter(n => n.type === 'mock');
             mContainer.innerHTML = '';
@@ -617,26 +632,90 @@
         }
 
         // ==========================================
-        // 5. 영단어/개념 카드 (플래시카드)
+        // 4. 영단어 & 유튜브 학습 보관함 로직
         // ==========================================
+        function addYoutubeVideo() {
+            const link = document.getElementById('ytLinkInput').value.trim();
+            const title = document.getElementById('ytTitleInput').value.trim() || '학습 영상';
+            const ytId = getYoutubeId(link);
+            if(!ytId) return alert('올바른 유튜브 링크를 입력해주세요.');
+
+            dbData.youtubeVideos.unshift({ id: Date.now(), ytId: ytId, title: title, url: link });
+            saveData();
+            document.getElementById('ytLinkInput').value = '';
+            document.getElementById('ytTitleInput').value = '';
+            showToast('유튜브 영상이 보관함에 추가되었습니다.');
+        }
+
+        function deleteYoutubeVideo(e, id) {
+            e.stopPropagation();
+            if(confirm('보관함에서 삭제하시겠습니까?')) {
+                dbData.youtubeVideos = dbData.youtubeVideos.filter(v => v.id !== id);
+                saveData();
+            }
+        }
+
+        function renderYoutubeList() {
+            const container = document.getElementById('ytListContainer');
+            container.innerHTML = '';
+            if(dbData.youtubeVideos.length === 0) {
+                container.innerHTML = '<p class="text-xs text-slate-400 py-2">등록된 유튜브 영상이 없습니다.</p>';
+                return;
+            }
+            dbData.youtubeVideos.forEach(v => {
+                container.innerHTML += `
+                    <div onclick="window.open('${v.url}')" class="flex-shrink-0 w-44 bg-slate-50 border border-slate-200 rounded-2xl p-2 cursor-pointer hover:border-rose-400 transition relative group shadow-sm">
+                        <button onclick="deleteYoutubeVideo(event, ${v.id})" class="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition z-10"><i class="fa-solid fa-xmark"></i></button>
+                        <img src="https://img.youtube.com/vi/${v.ytId}/hqdefault.jpg" class="w-full h-24 object-cover rounded-xl mb-1.5">
+                        <p class="text-xs font-bold text-slate-800 truncate px-1">${v.title}</p>
+                    </div>`;
+            });
+        }
+
         function addFlashcard() {
             const f = document.getElementById('fcFront').value.trim();
             const b = document.getElementById('fcBack').value.trim();
-            if(!f || !b) return alert('앞뒷면 내용을 모두 입력하세요.');
-            dbData.flashcards.unshift({id: Date.now(), front: f, back: b});
+            const ytLink = document.getElementById('fcYtLink').value.trim();
+            if(!f || !b) return alert('앞면 단어와 뒷면 설명을 모두 입력하세요.');
+
+            let ytId = '';
+            let fullYtUrl = '';
+            if(ytLink) {
+                ytId = getYoutubeId(ytLink);
+                fullYtUrl = ytLink;
+            }
+
+            dbData.flashcards.unshift({ id: Date.now(), front: f, back: b, ytId: ytId, ytUrl: fullYtUrl });
             saveData();
-            document.getElementById('fcFront').value=''; document.getElementById('fcBack').value='';
-            showToast('카드가 추가되었습니다.');
+            document.getElementById('fcFront').value = '';
+            document.getElementById('fcBack').value = '';
+            document.getElementById('fcYtLink').value = '';
+            showToast('플래시카드가 추가되었습니다.');
         }
+
         function deleteCard(e, id) {
             e.stopPropagation();
-            if(confirm('삭제할까요?')) { dbData.flashcards = dbData.flashcards.filter(c=>c.id!==id); saveData(); }
+            if(confirm('카드를 삭제하시겠습니까?')) {
+                dbData.flashcards = dbData.flashcards.filter(c => c.id !== id);
+                saveData();
+            }
         }
+
         function renderCards() {
+            renderYoutubeList();
             const c = document.getElementById('fcContainer');
             document.getElementById('fcCountBadge').innerText = `${dbData.flashcards.length}장`;
             c.innerHTML = '';
             dbData.flashcards.forEach(card => {
+                let backContent = `<p class="font-bold text-sm mb-2 break-words">${card.back}</p>`;
+                if(card.ytId) {
+                    backContent += `
+                        <div onclick="window.open('${card.ytUrl}'); event.stopPropagation();" class="mt-1 relative rounded-lg overflow-hidden border border-white/20 group cursor-pointer inline-block">
+                            <img src="https://img.youtube.com/vi/${card.ytId}/hqdefault.jpg" class="w-32 h-20 object-cover opacity-90 group-hover:opacity-100 transition">
+                            <div class="absolute inset-0 bg-black/30 flex items-center justify-center text-white text-xs"><i class="fa-solid fa-play"></i> 구간 재생</div>
+                        </div>`;
+                }
+
                 c.innerHTML += `
                     <div class="flashcard group" onclick="this.classList.toggle('flipped')">
                         <div class="flashcard-inner shadow-sm group-hover:shadow-md transition">
@@ -645,7 +724,8 @@
                                 <p class="font-extrabold text-lg text-slate-800 break-words">${card.front}</p>
                             </div>
                             <div class="flashcard-back">
-                                <p class="font-bold text-base break-words">${card.back}</p>
+                                <button onclick="deleteCard(event, ${card.id})" class="absolute top-2 right-2 text-white/60 hover:text-white z-10"><i class="fa-solid fa-xmark"></i></button>
+                                ${backContent}
                             </div>
                         </div>
                     </div>`;
@@ -653,7 +733,7 @@
         }
 
         // ==========================================
-        // 6. 스케줄러 (달력)
+        // 5. 스케줄러 & 망각 곡선 복습 추천 로직
         // ==========================================
         let currentYear = new Date().getFullYear();
         let currentMonth = new Date().getMonth();
@@ -661,7 +741,7 @@
 
         function initCalendar() {
             renderCalendar();
-            selectDate(new Date().toLocaleDateString('sv-SE')); // YYYY-MM-DD
+            selectDate(new Date().toLocaleDateString('sv-SE'));
         }
 
         function changeMonth(offset) {
@@ -689,10 +769,8 @@
                 const schs = dbData.schedules[dateStr] || [];
                 
                 let dots = '';
-                let hasStudy = schs.some(s=>s.type==='study');
-                let hasEvent = schs.some(s=>s.type==='event');
-                if(hasStudy) dots += `<div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>`;
-                if(hasEvent) dots += `<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>`;
+                if(schs.some(s=>s.type==='study')) dots += `<div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>`;
+                if(schs.some(s=>s.type==='event')) dots += `<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>`;
 
                 grid.innerHTML += `
                     <div onclick="selectDate('${dateStr}')" class="calendar-day ${isToday ? 'today' : ''} ${isSel ? 'ring-2 ring-indigo-500' : ''}">
@@ -705,8 +783,9 @@
         function selectDate(dateStr) {
             selectedDate = dateStr;
             document.getElementById('selectedDateText').innerText = dateStr;
-            renderCalendar(); // 선택 테두리 갱신
+            renderCalendar();
             renderScheduleList();
+            renderReviewRecommendations(dateStr);
         }
 
         function addSchedule() {
@@ -736,28 +815,60 @@
             const list = dbData.schedules[selectedDate] || [];
             const c = document.getElementById('scheduleListContainer');
             c.innerHTML = '';
-            if(list.length === 0) { c.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">일정이 없습니다.</p>'; return; }
+            if(list.length === 0) { c.innerHTML = '<p class="text-[11px] text-slate-400 text-center py-2">일정이 없습니다.</p>'; return; }
             
             list.forEach(s => {
                 const isStudy = s.type === 'study';
                 const color = isStudy ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-amber-600 bg-amber-50 border-amber-100';
                 c.innerHTML += `
-                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${color} ${s.done?'opacity-50 line-through':''}">
+                    <div class="flex items-center justify-between p-2 rounded-lg border ${color} ${s.done?'opacity-50 line-through':''}">
                         <div class="flex items-center space-x-2 overflow-hidden">
-                            <button onclick="toggleSchDone('${selectedDate}', ${s.id})" class="text-lg focus:outline-none"><i class="fa-regular ${s.done?'fa-square-check':'fa-square'}"></i></button>
-                            <span class="text-xs font-bold truncate">${isStudy?'📘':'📆'} ${s.text}</span>
+                            <button onclick="toggleSchDone('${selectedDate}', ${s.id})" class="text-base focus:outline-none"><i class="fa-regular ${s.done?'fa-square-check':'fa-square'}"></i></button>
+                            <span class="text-[11px] font-bold truncate">${isStudy?'📘':'📆'} ${s.text}</span>
                         </div>
-                        <button onclick="delSch('${selectedDate}', ${s.id})" class="text-slate-400 hover:text-red-500 ml-2"><i class="fa-solid fa-xmark text-xs"></i></button>
+                        <button onclick="delSch('${selectedDate}', ${s.id})" class="text-slate-400 hover:text-red-500 ml-1"><i class="fa-solid fa-xmark text-xs"></i></button>
+                    </div>`;
+            });
+        }
+
+        // 망각 곡선 알고리즘 적용 (오답 등록일 기준 +1일, +3일, +7일인 경우 추천)
+        function renderReviewRecommendations(dateStr) {
+            const c = document.getElementById('reviewRecommendationList');
+            c.innerHTML = '';
+
+            const selDateObj = new Date(dateStr);
+            let recommendations = [];
+
+            dbData.wrongNotes.forEach(n => {
+                if(!n.rawDate) return;
+                const regDateObj = new Date(n.rawDate);
+                const diffTime = selDateObj - regDateObj;
+                const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+                // 망각곡선 주기: 1일 뒤, 3일 뒤, 7일 뒤
+                if(diffDays === 1 || diffDays === 3 || diffDays === 7) {
+                    recommendations.push({ note: n, daysAfter: diffDays });
+                }
+            });
+
+            if(recommendations.length === 0) {
+                c.innerHTML = '<p class="text-[11px] text-amber-600/70 text-center py-2">이날 복습할 추천 오답이 없습니다.</p>';
+                return;
+            }
+
+            recommendations.forEach(r => {
+                const title = r.note.title || `${r.note.subject} ${r.note.num}번`;
+                c.innerHTML += `
+                    <div class="bg-white p-2 rounded-xl border border-amber-200 text-xs shadow-sm">
+                        <span class="text-[9px] font-bold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded mr-1">D+${r.daysAfter} 복습</span>
+                        <span class="font-bold text-slate-800">[${r.note.subject}] ${title}</span>
                     </div>`;
             });
         }
 
         // ==========================================
-        // 7. 대시보드 (D-Day & 타이머 & 통계)
+        // 6. 대시보드 연동 (D-Day & 오늘의 일정 & 통계)
         // ==========================================
-        let timerInterval;
-        let timeLeft = 25 * 60;
-        
         function setDday() {
             const name = prompt("시험 이름을 입력하세요 (예: 기말고사)", dbData.settings.ddayName);
             if(!name) return;
@@ -776,20 +887,27 @@
             document.getElementById('ddayCounter').innerText = diff > 0 ? `D-${diff}` : diff === 0 ? "D-Day!" : `D+${Math.abs(diff)}`;
         }
 
-        function setTimer(min) { clearInterval(timerInterval); timeLeft = min * 60; updateTimerDisp(); resetTimerBtns(); }
-        function startTimer() { 
-            document.getElementById('btnTimerStart').classList.add('hidden'); document.getElementById('btnTimerPause').classList.remove('hidden');
-            timerInterval = setInterval(() => {
-                if(timeLeft > 0) { timeLeft--; updateTimerDisp(); }
-                else { pauseTimer(); alert("타이머가 종료되었습니다! 휴식하세요."); }
-            }, 1000);
-        }
-        function pauseTimer() { clearInterval(timerInterval); resetTimerBtns(); }
-        function resetTimer() { pauseTimer(); setTimer(25); }
-        function resetTimerBtns() { document.getElementById('btnTimerStart').classList.remove('hidden'); document.getElementById('btnTimerPause').classList.add('hidden'); }
-        function updateTimerDisp() {
-            const m = Math.floor(timeLeft / 60); const s = timeLeft % 60;
-            document.getElementById('timerDisplay').innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        function updateDashboardToday() {
+            const todayStr = new Date().toLocaleDateString('sv-SE');
+            document.getElementById('todayDateBadge').innerText = todayStr;
+            const list = dbData.schedules[todayStr] || [];
+            const c = document.getElementById('dashboardTodayList');
+            c.innerHTML = '';
+            if(list.length === 0) {
+                c.innerHTML = '<p class="text-xs text-slate-400 text-center py-8">오늘 등록된 일정이 없습니다.</p>';
+                return;
+            }
+            list.forEach(s => {
+                const isStudy = s.type === 'study';
+                const color = isStudy ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-amber-600 bg-amber-50 border-amber-100';
+                c.innerHTML += `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border ${color} ${s.done?'opacity-50 line-through':''}">
+                        <div class="flex items-center space-x-2 overflow-hidden">
+                            <span class="text-xs font-bold truncate">${isStudy?'📘 공부':'📆 일정'}: ${s.text}</span>
+                        </div>
+                        <span class="text-[10px] ${s.done?'text-emerald-600 font-bold':'text-slate-400'}">${s.done?'완료됨':'진행중'}</span>
+                    </div>`;
+            });
         }
 
         function updateDashboardStats() {
@@ -801,7 +919,7 @@
             
             ['국어','영어','수학','사회','과학'].forEach(s => {
                 let cnt = counts[s];
-                if(s==='사회'||s==='과학') cnt += counts['탐구']/2; // 탐구 합산 (단순 분배)
+                if(s==='사회'||s==='과학') cnt += counts['탐구']/2;
                 c.innerHTML += `
                     <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
                         <p class="text-[10px] font-bold text-slate-500 mb-1">${s}</p>
@@ -811,29 +929,25 @@
         }
 
         // ==========================================
-        // 8. 초기화 및 관리
+        // 7. 전체 렌더링 및 관리자 기능
         // ==========================================
         function renderAll() {
             renderNotes();
             renderCards();
-            if(selectedDate) { renderCalendar(); renderScheduleList(); }
             updateDday();
+            updateDashboardToday();
             updateDashboardStats();
+            if(selectedDate) { renderCalendar(); renderScheduleList(); renderReviewRecommendations(selectedDate); }
         }
 
-        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); document.getElementById('adminModal').classList.add('flex'); }
-        function closeAdminModal() { document.getElementById('adminModal').classList.remove('flex'); document.getElementById('adminModal').classList.add('hidden'); }
+        function openAdminModal() { document.getElementById('adminModal')?.remove(); } // 생략 가능 모달 처리
         function resetAllData() {
-            if (document.getElementById('adminPasswordInput').value === 'wogud201007@') {
-                if (confirm('모든 데이터를 초기화하시겠습니까?')) {
-                    dbData = { wrongNotes: [], flashcards: [], schedules: {}, settings: dbData.settings };
-                    saveData(); closeAdminModal(); showToast("데이터가 초기화되었습니다.");
-                }
-            } else { alert("비밀번호 오류"); }
+            if (confirm('모든 데이터를 초기화하시겠습니까?')) {
+                dbData = { wrongNotes: [], flashcards: [], youtubeVideos: [], schedules: {}, settings: dbData.settings };
+                saveData();
+                showToast("데이터가 초기화되었습니다.");
+            }
         }
-
-        // 초기 실행
-        updateTimerDisp();
     </script>
 </body>
 </html>
