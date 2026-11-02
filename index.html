@@ -41,9 +41,6 @@
         .cal-day.today { border: 2px solid #4f46e5; background: #eef2ff; }
         .cal-day-num { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 2px; }
         
-        #youtubeOverlay { backdrop-filter: blur(10px); }
-        
-        /* 커스텀 체크박스 스타일 */
         .task-checkbox {
             appearance: none; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 4px; cursor: pointer; position: relative; transition: all 0.2s;
         }
@@ -113,7 +110,6 @@
 
             <!-- 공부 추가 컨테이너 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- 오늘 해야 할 개인 공부 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
                     <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><i class="fa-solid fa-book-bookmark text-indigo-500"></i> 오늘의 개인 공부 추가</h3>
                     <p class="text-xs text-slate-500 mb-4">직접 정한 개인 공부를 적어주세요. 완료 후 에빙하우스 복습 캘린더에 <strong class="text-indigo-600">자동 등록</strong>됩니다.</p>
@@ -123,14 +119,12 @@
                     </div>
                 </div>
 
-                <!-- 오늘 학교에서 한 공부 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-blue-500"></i> 오늘 학교 공부 복습</h3>
                         <button onclick="openTimetableModal()" class="text-blue-600 text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition shadow-sm"><i class="fa-solid fa-gear"></i> 시간표 설정</button>
                     </div>
-                    <p class="text-xs text-slate-500 mb-3">복습할 과목만 체크(✔️)하여 오늘 달력에 추가하세요. (불필요한 과목은 해제)</p>
-                    
+                    <p class="text-xs text-slate-500 mb-3">복습할 과목만 체크(✔️)하여 오늘 달력에 추가하세요.</p>
                     <div class="flex-grow bg-slate-50 p-3 rounded-xl border border-slate-100 mb-3 overflow-y-auto">
                         <div id="todayTimetableDisplay" class="flex flex-wrap gap-2 items-center">
                             <span class="text-xs text-slate-400">시간표 로딩중...</span>
@@ -156,12 +150,10 @@
                     <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 mb-2">
                         <div class="text-red-400">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="text-blue-400">토</div>
                     </div>
-                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 md:gap-2">
-                        <!-- JS 렌더링 -->
-                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 md:gap-2"></div>
                 </div>
 
-                <!-- 상세 패널 (폴더형 복습 표시) -->
+                <!-- 상세 패널 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
                     <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3" id="selectedDateTitle">오늘의 일정</h3>
                     
@@ -175,7 +167,7 @@
                             <div id="normalScheduleList" class="space-y-2"></div>
                         </div>
 
-                        <!-- 개인 공부 (당일치기) -->
+                        <!-- 개인 공부 -->
                         <div class="pt-4 border-t border-slate-100">
                             <span class="text-xs font-bold text-indigo-600 mb-2 block"><i class="fa-solid fa-book-bookmark"></i> 오늘 할 개인 공부</span>
                             <div id="personalScheduleList" class="space-y-2"></div>
@@ -193,7 +185,7 @@
                             <div id="reviewScheduleList" class="space-y-2"></div>
                         </div>
                         
-                        <!-- 이번 주에 못한 것 (토요일에만 표시됨) -->
+                        <!-- 이번 주에 못한 것 (토요일 전용) -->
                         <div id="missedScheduleSection" class="pt-4 border-t border-slate-100 hidden">
                             <span class="text-xs font-bold text-rose-500 mb-2 block"><i class="fa-solid fa-triangle-exclamation"></i> 이번 주에 못한 것</span>
                             <div id="missedScheduleList" class="space-y-2"></div>
@@ -226,7 +218,6 @@
                 </div>
             </div>
         </div>
-
         <main class="max-w-6xl mx-auto px-4 py-8">
             <div id="notesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
         </main>
@@ -248,7 +239,6 @@
                 </div>
             </div>
 
-            <!-- 검색 & 리스트 영역 -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 pb-4 mt-8 gap-4">
                 <h3 class="text-lg font-bold text-slate-800">📚 내 단어장 보관함 (날짜별 폴더)</h3>
                 <div class="flex flex-wrap gap-2 w-full md:w-auto">
@@ -259,8 +249,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 단어장 폴더가 들어갈 컨테이너 -->
             <div id="vocaPackGrid" class="space-y-4"></div>
         </main>
     </div>
@@ -270,14 +258,13 @@
 
     <!-- ================== 모달 모음 ================== -->
 
-    <!-- 시간표 설정 모달 -->
     <div id="timetableModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
                 <h3 class="text-lg font-bold text-slate-900">학교 일주일 시간표 설정</h3>
                 <button onclick="closeTimetableModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
             </div>
-            <p class="text-xs text-slate-500 mb-5">각 요일별 과목을 쉼표(,)로 구분해서 적어주세요. (예: 국어,수학,진로)</p>
+            <p class="text-xs text-slate-500 mb-5">각 요일별 과목을 쉼표(,)로 구분해서 적어주세요.</p>
             <div class="space-y-4 max-h-[60vh] overflow-y-auto hide-scroll">
                 <div class="flex items-center gap-3"><label class="w-8 text-sm font-bold text-slate-700 text-center bg-slate-100 py-1 rounded">월</label><input type="text" id="ttMon" class="flex-grow border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="flex items-center gap-3"><label class="w-8 text-sm font-bold text-slate-700 text-center bg-slate-100 py-1 rounded">화</label><input type="text" id="ttTue" class="flex-grow border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"></div>
@@ -291,7 +278,6 @@
         </div>
     </div>
 
-    <!-- 일반 일정 모달 -->
     <div id="scheduleModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative">
             <h3 class="text-lg font-bold text-slate-900 mb-4">일반 일정 추가</h3>
@@ -303,7 +289,6 @@
         </div>
     </div>
 
-    <!-- 오답 노트 작성 모달 -->
     <div id="noteModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm overflow-y-auto">
         <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl my-8 relative flex flex-col">
             <div class="flex justify-between items-center p-5 border-b border-slate-100"><h3 class="text-xl font-bold text-slate-900" id="modalTitle">새 오답 노트 작성</h3><button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button></div>
@@ -314,62 +299,58 @@
                     <label class="flex items-center gap-2 cursor-pointer text-sm font-bold"><input type="radio" name="noteTypeInput" value="모의고사" class="accent-indigo-600 w-5 h-5"> 모의고사</label>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">문제 출처</label><input type="text" id="bookInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
-                    <div><label class="block text-xs font-bold text-slate-700 mb-1">문제 번호</label><input type="text" id="numInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                    <div class="col-span-2"><label class="block text-xs font-bold text-slate-700 mb-1">문제 출처</label><input type="text" id="bookInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">문제 번호</label><input type="text" id="numInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
                     <div><label class="block text-xs font-bold text-slate-700 mb-1">체감 난이도</label><select id="difficultyInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"><option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐</option><option value="⭐⭐⭐" selected>⭐⭐⭐</option></select></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-xs font-bold text-slate-700 mb-1">과목</label><select id="subjectInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"><option value="국어">국어</option><option value="영어">영어</option><option value="수학">수학</option><option value="사회">사회</option><option value="과학">과학</option></select></div>
-                    <div><label class="block text-xs font-bold text-slate-700 mb-1">키워드</label><input type="text" id="keywordInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">키워드</label><input type="text" id="keywordInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
                 </div>
-                <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between"><div><p class="text-sm font-bold text-indigo-900 mb-1"><i class="fa-solid fa-calendar-plus"></i> 자동 복습 달력 등록</p></div></div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">사진 첨부</label>
                     <div class="flex items-center gap-3"><label class="cursor-pointer bg-slate-100 border border-slate-300 px-4 py-2 rounded-lg text-sm"><input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(event)">선택</label><span id="fileNameDisplay" class="text-xs text-slate-500">없음</span></div>
                     <div id="imagePreviewContainer" class="hidden mt-3 relative inline-block"><img id="imagePreview" src="" class="h-32 object-contain border border-slate-200 rounded-lg shadow-sm"><button onclick="removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full">&times;</button></div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="block text-xs font-bold text-slate-700 mb-1">오개념</label><textarea id="myNoteInput" rows="5" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500"></textarea></div>
-                    <div><label class="block text-xs font-bold text-slate-700 mb-1">AI 풀이</label><textarea id="aiNoteInput" rows="5" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-emerald-50/30 outline-none focus:ring-2 focus:ring-emerald-500"></textarea></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">오개념</label><textarea id="myNoteInput" rows="5" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></textarea></div>
+                    <div><label class="block text-xs font-bold text-slate-700 mb-1">AI 풀이</label><textarea id="aiNoteInput" rows="5" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-emerald-50/30 outline-none"></textarea></div>
                 </div>
             </div>
             <div class="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl"><button onclick="closeNoteModal()" class="px-5 py-2 rounded-lg text-sm bg-white border font-bold text-slate-600">취소</button><button onclick="saveNote()" id="saveBtn" class="px-5 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600">저장</button></div>
         </div>
     </div>
 
-    <!-- 이미지 확대 모달 -->
     <div id="imageZoomModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[150] p-4" onclick="this.classList.replace('flex','hidden')"><img id="zoomedImage" src="" class="max-w-full max-h-full object-contain rounded cursor-zoom-out"></div>
 
-    <!-- 단어장 자동 등록 팩 모달 -->
     <div id="vocaAddModal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-8 relative">
             <h3 class="text-2xl font-black text-slate-900 mb-2">유튜브 영단어 일괄 생성</h3>
             <div class="space-y-5">
                 <div><label class="block text-sm font-bold mb-1 text-slate-700">단어장 이름</label><input type="text" id="vocaTitleInput" class="w-full border-b-2 border-slate-200 py-2 text-lg outline-none focus:border-indigo-500"></div>
-                <div><label class="block text-sm font-bold mb-1 text-slate-700">유튜브 링크</label><input type="text" id="vocaYoutubeInput" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500"></div>
-                <div><label class="block text-sm font-bold mb-1 text-slate-700">JSON 데이터</label><textarea id="vocaDataInput" rows="6" class="w-full border bg-slate-900 text-emerald-400 font-mono rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></textarea></div>
+                <div><label class="block text-sm font-bold mb-1 text-slate-700">유튜브 링크</label><input type="text" id="vocaYoutubeInput" class="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm bg-slate-50 outline-none"></div>
+                <div><label class="block text-sm font-bold mb-1 text-slate-700">JSON 데이터</label><textarea id="vocaDataInput" rows="6" class="w-full border bg-slate-900 text-emerald-400 font-mono rounded-xl px-4 py-3 text-sm outline-none"></textarea></div>
             </div>
             <div class="mt-8 flex justify-end gap-3"><button onclick="closeVocaAddModal()" class="px-6 py-3 rounded-xl bg-slate-100 font-bold text-slate-600 hover:bg-slate-200">취소</button><button onclick="saveVocaPack()" class="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700">생성 및 달력 등록</button></div>
         </div>
     </div>
     
-    <!-- (새기능) 단어장 팩 직접 등록 모달 -->
     <div id="manualVocaPackModal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative">
             <h3 class="text-xl font-black text-slate-900 mb-4">단어장 직접 만들기</h3>
-            <p class="text-xs text-slate-500 mb-4">팩을 생성할 단어 1개를 먼저 입력하세요. (이후 플래시카드 화면에서 계속 추가 가능)</p>
+            <p class="text-xs text-slate-500 mb-4">팩을 생성할 단어 1개를 먼저 입력하세요.</p>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-bold mb-1 text-slate-700">단어장 이름</label>
-                    <input type="text" id="manualPackTitle" placeholder="예: 모의고사 필수 영단어" class="w-full border-b-2 border-slate-200 py-2 text-base outline-none focus:border-indigo-500">
+                    <input type="text" id="manualPackTitle" placeholder="예: 모의고사 필수 영단어" class="w-full border-b-2 border-slate-200 py-2 text-base outline-none">
                 </div>
                 <div class="pt-2 border-t border-slate-100">
                     <label class="block text-xs font-bold text-slate-700 mb-1">첫 번째 단어</label>
-                    <input type="text" id="manualPackWord" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="manualPackWord" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">단어 뜻</label>
-                    <input type="text" id="manualPackMeaning" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="manualPackMeaning" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none">
                 </div>
             </div>
             <div class="mt-8 flex justify-end gap-2">
@@ -379,16 +360,15 @@
         </div>
     </div>
 
-    <!-- (새기능) 개별 단어 추가 팝업 (플래시카드용) -->
     <div id="wordAddModal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-[200] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative">
             <h3 class="text-lg font-bold text-slate-900 mb-4">새 단어 추가하기</h3>
             <div class="space-y-3">
-                <div><label class="block text-xs font-bold text-slate-700 mb-1">단어 / 숙어</label><input type="text" id="singleWordInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
-                <div><label class="block text-xs font-bold text-slate-700 mb-1">기본 뜻</label><input type="text" id="singleMeaningInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
-                <div><label class="block text-xs font-bold text-slate-700 mb-1">문맥 의미 (선택)</label><input type="text" id="singleContextInput" placeholder="생략 가능" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
-                <div><label class="block text-xs font-bold text-slate-700 mb-1">뉘앙스/설명 (선택)</label><input type="text" id="singleNuanceInput" placeholder="생략 가능" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
-                <div><label class="block text-xs font-bold text-slate-700 mb-1">영상 시간(초) (선택)</label><input type="number" id="singleTimeInput" placeholder="예: 45" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">단어 / 숙어</label><input type="text" id="singleWordInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">기본 뜻</label><input type="text" id="singleMeaningInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">문맥 의미 (선택)</label><input type="text" id="singleContextInput" placeholder="생략 가능" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">뉘앙스/설명 (선택)</label><input type="text" id="singleNuanceInput" placeholder="생략 가능" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
+                <div><label class="block text-xs font-bold text-slate-700 mb-1">영상 시간(초) (선택)</label><input type="number" id="singleTimeInput" placeholder="예: 45" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none"></div>
             </div>
             <div class="mt-6 flex justify-end gap-2">
                 <button onclick="closeWordAddModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">취소</button>
@@ -457,7 +437,7 @@
             allSchedules=[]; const d=s.val(); 
             if(d) for(let k in d) {
                 let item = {id:k,...d[k]};
-                if(item.completed === undefined) item.completed = false; // completed 속성 기본값 설정
+                if(item.completed === undefined) item.completed = false;
                 allSchedules.push(item);
             }
             renderCalendar(); renderTodayDashboard(); 
@@ -494,9 +474,6 @@
 
         function getYYYYMMDD(dObj) { return dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0') + '-' + String(dObj.getDate()).padStart(2,'0'); }
 
-        // ==========================================
-        // 대시보드 & 달력 & 학교시간표
-        // ==========================================
         function renderTodayDashboard() {
             const todayStr = getYYYYMMDD(realToday); const days = ['일', '월', '화', '수', '목', '금', '토'];
             document.getElementById('dashboardDateTitle').innerText = '오늘, ' + (realToday.getMonth()+1) + '월 ' + realToday.getDate() + '일 (' + days[realToday.getDay()] + ')';
@@ -536,7 +513,6 @@
         }
         function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderCalendar(); }
 
-        // 체크박스 상태 토글 함수
         function toggleScheduleComplete(id, currentStatus) {
             db.ref('schedules/' + id).update({ completed: !currentStatus });
         }
@@ -563,7 +539,6 @@
             const nList = list.filter(s => s.type === 'normal'); const pList = list.filter(s => s.type === 'personal_study');
             const sList = list.filter(s => s.type === 'school_review'); const rList = list.filter(s => s.type === 'review');
 
-            // 1. 일반 일정 렌더링 (체크박스 및 삭제 버튼)
             const nContainer = document.getElementById('normalScheduleList');
             nContainer.innerHTML = nList.length===0 ? '<p class="text-[11px] text-slate-400 italic">일정이 없습니다.</p>' : '';
             nList.forEach(item => { 
@@ -577,17 +552,14 @@
                 </div>`; 
             });
 
-            // 개인 공부
             const pContainer = document.getElementById('personalScheduleList');
             pContainer.innerHTML = pList.length===0 ? '<p class="text-[11px] text-slate-400 italic">오늘 할 개인 공부가 없습니다.</p>' : '';
-            pList.forEach(item => { pContainer.innerHTML += '<div class="flex justify-between items-center bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 shadow-sm mb-2"><span class="text-sm font-bold text-indigo-900"><i class="fa-solid fa-book-open text-indigo-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-indigo-300 hover:text-indigo-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
+            pList.forEach(item => { pContainer.innerHTML += '<div class="flex justify-between items-center bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 shadow-sm mb-2"><span class="text-sm font-bold text-indigo-950"><i class="fa-solid fa-book-open text-indigo-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-indigo-300 hover:text-indigo-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 학교 복습
             const sContainer = document.getElementById('schoolScheduleList');
             sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
             sList.forEach(item => { sContainer.innerHTML += '<div class="flex justify-between items-center bg-blue-50 p-2.5 rounded-lg border border-blue-100 shadow-sm mb-2"><span class="text-sm font-bold text-blue-900"><i class="fa-solid fa-check-circle text-blue-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-blue-300 hover:text-blue-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 에빙하우스 복습
             const rContainer = document.getElementById('reviewScheduleList');
             if(rList.length === 0) { rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; } else {
                 const grouped = {};
@@ -599,46 +571,46 @@
                     items.forEach(item => {
                         let badge = 'bg-emerald-100 text-emerald-700'; let actionAttr = '';
                         if(item.sourceType === 'voca') { badge = 'bg-indigo-100 text-indigo-700'; actionAttr = 'onclick="openVocaFolderFromCalendar(\'' + item.originalDate + '\', \'' + item.sourceId + '\')" class="cursor-pointer hover:bg-slate-50 transition"'; }
-                        itemsHtml += '<div ' + actionAttr + ' class="bg-white p-2 rounded border border-slate-100 relative mb-2"><div class="flex items-center gap-2 mb-1"><span class="' + badge + ' px-1.5 py-0.5 rounded text-[10px] font-bold">' + item.cycleText + '</span><button onclick="deleteSchedule(\'' + item.id + '\'); event.stopPropagation();" class="absolute top-1 right-1 text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button></div><span class="text-xs font-bold text-slate-800">' + item.text + '</span></div>';
+                        itemsHtml += `<div ${actionAttr} class="bg-white p-2.5 rounded border border-slate-100 relative mb-2 shadow-sm">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="${badge} px-1.5 py-0.5 rounded text-[10px] font-bold">${item.cycleText}</span>
+                                <button onclick="deleteSchedule('${item.id}'); event.stopPropagation();" class="text-slate-300 hover:text-red-500 text-xs px-1.5 py-0.5 rounded transition" title="이 복습 일정 삭제"><i class="fa-solid fa-trash-can"></i> 삭제</button>
+                            </div>
+                            <span class="text-xs font-bold text-slate-800 block">${item.text}</span>
+                        </div>`;
                     });
-                    rHtml += '<div class="mb-3 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm"><button onclick="toggleFolder(\'' + folderId + '\')" class="w-full flex justify-between items-center bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"><span><i class="fa-solid fa-folder text-emerald-500 text-sm"></i> ' + oDate + ' 공부내용 (' + items.length + '건)</span><i class="fa-solid fa-chevron-down text-slate-400 transition-transform" id="icon_' + folderId + '"></i></button><div id="' + folderId + '" class="hidden flex-col p-2 bg-white">' + itemsHtml + '</div></div>';
+                    rHtml += `<div class="mb-3 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <button onclick="toggleFolder('${folderId}')" class="w-full flex justify-between items-center bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 hover:bg-slate-100 transition">
+                            <span><i class="fa-solid fa-folder text-emerald-500 text-sm"></i> ${oDate} 공부내용 (${items.length}건)</span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 transition-transform" id="icon_${folderId}"></i>
+                        </button>
+                        <div id="${folderId}" class="hidden flex-col p-2 bg-white">${itemsHtml}</div>
+                    </div>`;
                 }
                 rContainer.innerHTML = rHtml;
             }
 
-            // 2. 토요일 특별 섹션 (이번 주에 못한 것)
             const missedSection = document.getElementById('missedScheduleSection');
             const missedList = document.getElementById('missedScheduleList');
             missedList.innerHTML = '';
             
-            if(selDateObj.getDay() === 6) { // 토요일이면
+            if(selDateObj.getDay() === 6) {
                 missedSection.classList.remove('hidden');
-                
-                // 이번 주(일~금) 날짜 구하기
                 let weekDates = [];
                 for(let i = 1; i <= 6; i++) {
-                    let d = new Date(selDateObj);
-                    d.setDate(d.getDate() - i);
-                    weekDates.push(getYYYYMMDD(d));
+                    let d = new Date(selDateObj); d.setDate(d.getDate() - i); weekDates.push(getYYYYMMDD(d));
                 }
-
-                // 이번 주 일~금에 등록된 일반 일정 중 미완료 항목 필터링
                 const missedTasks = allSchedules.filter(s => weekDates.includes(s.date) && s.type === 'normal' && s.completed === false);
 
                 if(missedTasks.length === 0) {
                     missedList.innerHTML = '<p class="text-[11px] text-slate-400 italic">이번 주에 밀린 일정이 없습니다. 훌륭합니다!</p>';
                 } else {
-                    // 날짜(폴더)별로 그룹화
                     const mGroup = {};
-                    missedTasks.forEach(task => {
-                        if(!mGroup[task.date]) mGroup[task.date] = [];
-                        mGroup[task.date].push(task);
-                    });
+                    missedTasks.forEach(task => { if(!mGroup[task.date]) mGroup[task.date] = []; mGroup[task.date].push(task); });
 
-                    // 날짜 오름차순 정렬하여 렌더링
                     Object.keys(mGroup).sort().forEach(mDate => {
                         const mDateObj = new Date(mDate);
-                        const folderTitle = mDate.substring(5) + ` (${daysArr[mDateObj.getDay()]})`;
+                        const folderTitle = mDate.substring(5) + ` (${daysArr[mDateObj.getDay()][cite: 2]})`;
                         const mFolderId = 'missed_' + mDate.replace(/-/g, '');
                         
                         let taskHtml = '';
@@ -727,9 +699,6 @@
             });
         }
 
-        // ==========================================
-        // 오답노트
-        // ==========================================
         let currentNoteType = '일반'; let currentNoteSub = '전체'; let currentNoteImg = null;
         function setNoteType(t) { 
             currentNoteType = t; 
@@ -787,9 +756,6 @@
         }
         function deleteNote(id) { if(confirm("완전히 삭제하시겠습니까?")) db.ref('studyNotes/'+id).remove(); }
 
-        // ==========================================
-        // 단어장 (삭제 및 직접 등록 추가)
-        // ==========================================
         let ytPlayer = null; let currentPlayVocaPack = null; let currentCardIndex = 0;
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         
@@ -813,7 +779,6 @@
             }
         }
 
-        // 새 팩 직접 등록 팝업 (단어장 메인 화면용)
         function openManualVocaPackModal() {
             document.getElementById('manualPackTitle').value = '';
             document.getElementById('manualPackWord').value = '';
@@ -828,7 +793,7 @@
             if(!title || !word || !meaning) return alert("단어장 이름, 첫 단어, 단어 뜻을 모두 입력해주세요.");
 
             const wordsArr = [{ word: word, meaning: meaning, context_meaning: "직접 등록한 단어입니다.", nuance: "-", time: 0 }];
-            const nData = { title: title, url: "https://www.youtube.com/watch?v=ScMzIvxBSi4", words: wordsArr, timestamp: Date.now() }; // 기본 빈 영상 URL 삽입
+            const nData = { title: title, url: "https://www.youtube.com/watch?v=ScMzIvxBSi4", words: wordsArr, timestamp: Date.now() };
             
             const newRef = db.ref('vocaPacks').push();
             newRef.set(nData).then(() => {
@@ -837,7 +802,6 @@
             });
         }
 
-        // 플래시카드 안에서 단어 추가
         function openWordAddModal(e) {
             if(e) e.stopPropagation();
             document.getElementById('singleWordInput').value = ''; document.getElementById('singleMeaningInput').value = ''; document.getElementById('singleContextInput').value = ''; document.getElementById('singleNuanceInput').value = ''; document.getElementById('singleTimeInput').value = '';
