@@ -102,7 +102,7 @@
 
             <!-- 공부 추가 컨테이너 2종 (개인공부 / 학교공부) -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- 오늘 해야 할 개인 공부 (새 기능) -->
+                <!-- 오늘 해야 할 개인 공부 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
                     <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><i class="fa-solid fa-book-bookmark text-indigo-500"></i> 오늘의 개인 공부 추가</h3>
                     <p class="text-xs text-slate-500 mb-4">직접 정한 개인 공부를 적어주세요. 완료 후 에빙하우스 복습 캘린더에 <strong class="text-indigo-600">자동 등록</strong>됩니다.</p>
@@ -112,7 +112,7 @@
                     </div>
                 </div>
 
-                <!-- 오늘 학교에서 한 공부 (선택형 업데이트) -->
+                <!-- 오늘 학교에서 한 공부 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-blue-500"></i> 오늘 학교 공부 복습</h3>
@@ -155,7 +155,6 @@
                     <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3" id="selectedDateTitle">오늘의 일정</h3>
                     
                     <div class="flex-grow space-y-4 overflow-y-auto hide-scroll max-h-[500px] pb-4">
-                        
                         <!-- 일반 일정 -->
                         <div>
                             <div class="flex justify-between items-center mb-2">
@@ -190,7 +189,6 @@
 
     <!-- SECTION 2: AI 스마트 오답노트 -->
     <div id="sectionNotes" class="hidden w-full bg-slate-50 flex-grow pb-12">
-        <!-- 기존 헤더/검색 유지 -->
         <div class="bg-white border-b border-slate-200 pt-6 pb-2 px-4 shadow-sm sticky top-16 z-30">
             <div class="max-w-6xl mx-auto space-y-4">
                 <div class="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -218,7 +216,7 @@
         <button onclick="openNoteModal()" class="fixed bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-40"><i class="fa-solid fa-pen text-xl"></i></button>
     </div>
 
-    <!-- SECTION 3: 유튜브 연동 스마트 단어장 (폴더 뷰 업데이트) -->
+    <!-- SECTION 3: 유튜브 연동 스마트 단어장 -->
     <div id="sectionVoca" class="hidden w-full flex-grow bg-slate-50 pb-12">
         <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
             <div class="bg-indigo-900 rounded-3xl p-8 text-white shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">
@@ -234,7 +232,6 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-slate-200 pb-4 mt-8 gap-4">
                 <h3 class="text-lg font-bold text-slate-800">📚 내 단어장 보관함 (날짜별 폴더)</h3>
                 <div class="flex flex-wrap gap-2 w-full md:w-auto">
-                    <!-- 날짜 검색 추가됨 -->
                     <input type="date" id="vocaDateSearch" onchange="renderVocaPacks()" class="bg-white border border-slate-200 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 text-slate-600 outline-none shadow-sm">
                     <div class="relative flex-grow">
                         <input type="text" id="vocaSearchInput" onkeyup="renderVocaPacks()" placeholder="단어장 이름 검색..." class="w-full bg-white border border-slate-200 text-sm rounded-lg pl-8 pr-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
@@ -341,8 +338,12 @@
         <button onclick="closeVocaPlayer()" class="absolute top-6 right-6 text-white/50 hover:text-white text-4xl">&times;</button>
         <h2 id="playerTitle" class="text-white font-bold text-2xl mb-8 opacity-80">제목</h2>
         <div class="flex flex-col lg:flex-row w-full max-w-6xl gap-8 items-center justify-center">
+            
             <div class="w-full max-w-md">
-                <div class="flashcard-scene" onclick="flipCard()">
+                <div class="flashcard-scene relative" onclick="flipCard()">
+                    <!-- 새로 추가된 단어 개별 삭제 버튼 -->
+                    <button onclick="deleteCurrentWord(event)" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-slate-100/50 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-full text-base z-[50] transition shadow-sm backdrop-blur-sm" title="이 단어 삭제하기"><i class="fa-solid fa-trash-can"></i></button>
+                    
                     <div id="fcCard" class="flashcard">
                         <div class="flashcard-face flashcard-front flex-col gap-4"><button onclick="playTTS(event)" class="text-slate-400 hover:text-indigo-500 text-3xl"><i class="fa-solid fa-volume-high"></i></button><h1 id="fcWord" class="text-5xl font-black tracking-tight">word</h1></div>
                         <div class="flashcard-face flashcard-back flex-col p-8 space-y-4 shadow-2xl">
@@ -359,6 +360,7 @@
                     <button onclick="nextCard()" class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white transition"><i class="fa-solid fa-arrow-right"></i></button>
                 </div>
             </div>
+            
             <div class="w-full max-w-xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative group border border-white/10">
                 <div id="youtubePlayer"></div>
                 <div id="ytPlayBtnOverlay" onclick="playVideoAtTime()" class="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer z-10 group-hover:bg-black/20 transition-all"><div class="bg-red-600 text-white w-20 h-16 rounded-2xl flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition"><i class="fa-solid fa-play text-2xl"></i></div><p class="absolute bottom-4 text-white text-xs font-bold drop-shadow-md">클릭하면 이 단어가 나오는 부분부터 재생</p></div>
@@ -391,7 +393,6 @@
         db.ref('vocaPacks').on('value', (s) => { allVocaPacks=[]; const d=s.val(); if(d) for(let k in d) allVocaPacks.push({id:k,...d[k]}); allVocaPacks.sort((a,b)=>b.timestamp-a.timestamp); if(document.getElementById('sectionVoca').classList.contains('block')) renderVocaPacks(); });
         db.ref('timetable').on('value', (s) => { if(s.val()) myTimetable = s.val(); renderTodayTimetable(); });
 
-        // 로그인 확인 로직
         function checkEntryPassword() {
             if (document.getElementById('accessPasswordInput').value === ENTRY_PASSWORD) {
                 document.getElementById('authOverlay').style.opacity = '0';
@@ -402,7 +403,6 @@
             }
         }
 
-        // 탭 전환
         function switchMainTab(tabName) {
             ['Dashboard', 'Notes', 'Voca', 'Campaign'].forEach(name => {
                 const sec = document.getElementById('section' + name); 
@@ -423,20 +423,15 @@
         }
 
         // ==========================================
-        // 대시보드 & 달력 & 학교시간표 선택 등록
+        // 대시보드 & 달력
         // ==========================================
         function renderTodayDashboard() {
             const todayStr = getYYYYMMDD(realToday); const days = ['일', '월', '화', '수', '목', '금', '토'];
             document.getElementById('dashboardDateTitle').innerText = '오늘, ' + (realToday.getMonth()+1) + '월 ' + realToday.getDate() + '일 (' + days[realToday.getDay()] + ')';
-
             const todaysList = allSchedules.filter(s => s.date === todayStr);
-            const normCount = todaysList.filter(s => s.type === 'normal' || s.type === 'personal_study').length;
-            const revCount = todaysList.filter(s => s.type === 'review').length;
-            const schoolCount = todaysList.filter(s => s.type === 'school_review').length;
-            
-            document.getElementById('todayTaskCount').innerText = normCount;
-            document.getElementById('todayReviewCount').innerText = revCount;
-            document.getElementById('todaySchoolReviewCount').innerText = schoolCount;
+            document.getElementById('todayTaskCount').innerText = todaysList.filter(s => s.type === 'normal' || s.type === 'personal_study').length;
+            document.getElementById('todayReviewCount').innerText = todaysList.filter(s => s.type === 'review').length;
+            document.getElementById('todaySchoolReviewCount').innerText = todaysList.filter(s => s.type === 'school_review').length;
             renderDayDetail(todayStr);
         }
 
@@ -444,9 +439,7 @@
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             document.getElementById('calMonthDisplay').innerText = year + '. ' + String(month+1).padStart(2,'0');
             const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const grid = document.getElementById('calendarGrid'); 
-            grid.innerHTML = '';
-
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
             for (let i = 0; i < firstDay; i++) grid.appendChild(document.createElement('div'));
             const todayStr = getYYYYMMDD(realToday);
 
@@ -471,7 +464,6 @@
         }
         function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderCalendar(); }
 
-        // 아코디언 폴더 여닫기 함수
         function toggleFolder(id) {
             const el = document.getElementById(id); const icon = document.getElementById('icon_' + id);
             if(el.classList.contains('hidden')) {
@@ -484,49 +476,35 @@
             }
         }
 
-        // 달력에서 단어장 폴더 클릭 시 이동
         function openVocaFolderFromCalendar(dateStr, packId) {
-            switchMainTab('voca');
-            document.getElementById('vocaDateSearch').value = dateStr;
-            renderVocaPacks();
+            switchMainTab('voca'); document.getElementById('vocaDateSearch').value = dateStr; renderVocaPacks();
             setTimeout(() => {
-                const fId = 'voca_folder_' + dateStr.replace(/-/g, '');
-                const el = document.getElementById(fId);
+                const fId = 'voca_folder_' + dateStr.replace(/-/g, ''); const el = document.getElementById(fId);
                 if(el && el.classList.contains('hidden')) toggleFolder(fId);
                 openVocaPlayer(packId);
             }, 300);
         }
 
-        // 달력 일일 상세 내역 (폴더형 복습 렌더링)
         function renderDayDetail(dateStr) {
-            const parts = dateStr.split('-'); 
-            document.getElementById('selectedDateTitle').innerText = parts[1] + '월 ' + parts[2] + '일 일정';
+            const parts = dateStr.split('-'); document.getElementById('selectedDateTitle').innerText = parts[1] + '월 ' + parts[2] + '일 일정';
             const list = allSchedules.filter(s => s.date === dateStr);
-            const nList = list.filter(s => s.type === 'normal');
-            const pList = list.filter(s => s.type === 'personal_study');
-            const sList = list.filter(s => s.type === 'school_review');
-            const rList = list.filter(s => s.type === 'review');
+            const nList = list.filter(s => s.type === 'normal'); const pList = list.filter(s => s.type === 'personal_study');
+            const sList = list.filter(s => s.type === 'school_review'); const rList = list.filter(s => s.type === 'review');
 
-            // 일반 일정
             const nContainer = document.getElementById('normalScheduleList');
             nContainer.innerHTML = nList.length===0 ? '<p class="text-[11px] text-slate-400 italic">일정이 없습니다.</p>' : '';
             nList.forEach(item => { nContainer.innerHTML += '<div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100"><span class="text-sm">' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-red-400"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 개인 공부
             const pContainer = document.getElementById('personalScheduleList');
             pContainer.innerHTML = pList.length===0 ? '<p class="text-[11px] text-slate-400 italic">오늘 할 개인 공부가 없습니다.</p>' : '';
             pList.forEach(item => { pContainer.innerHTML += '<div class="flex justify-between items-center bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 shadow-sm mb-2"><span class="text-sm font-bold text-indigo-900"><i class="fa-solid fa-book-open text-indigo-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-indigo-300 hover:text-indigo-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 학교 당일 복습
             const sContainer = document.getElementById('schoolScheduleList');
             sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
             sList.forEach(item => { sContainer.innerHTML += '<div class="flex justify-between items-center bg-blue-50 p-2.5 rounded-lg border border-blue-100 shadow-sm mb-2"><span class="text-sm font-bold text-blue-900"><i class="fa-solid fa-check-circle text-blue-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-blue-300 hover:text-blue-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 폴더형 에빙하우스 복습
             const rContainer = document.getElementById('reviewScheduleList');
-            if(rList.length === 0) { 
-                rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; 
-            } else {
+            if(rList.length === 0) { rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; } else {
                 const grouped = {};
                 rList.forEach(item => {
                     const oDate = item.originalDate || '이전 학습';
@@ -536,27 +514,19 @@
 
                 let rHtml = '';
                 for(let oDate in grouped) {
-                    const items = grouped[oDate];
-                    const folderId = ('folder_' + oDate + '_' + dateStr).replace(/-/g, '');
-                    
+                    const items = grouped[oDate]; const folderId = ('folder_' + oDate + '_' + dateStr).replace(/-/g, '');
                     let itemsHtml = '';
                     items.forEach(item => {
-                        let badge = 'bg-emerald-100 text-emerald-700'; 
-                        let actionAttr = '';
-                        if(item.sourceType === 'voca') { 
-                            badge = 'bg-indigo-100 text-indigo-700'; 
-                            actionAttr = 'onclick="openVocaFolderFromCalendar(\'' + item.originalDate + '\', \'' + item.sourceId + '\')" class="cursor-pointer hover:bg-slate-50 transition"'; 
-                        }
+                        let badge = 'bg-emerald-100 text-emerald-700'; let actionAttr = '';
+                        if(item.sourceType === 'voca') { badge = 'bg-indigo-100 text-indigo-700'; actionAttr = 'onclick="openVocaFolderFromCalendar(\'' + item.originalDate + '\', \'' + item.sourceId + '\')" class="cursor-pointer hover:bg-slate-50 transition"'; }
                         itemsHtml += '<div ' + actionAttr + ' class="bg-white p-2 rounded border border-slate-100 relative mb-2"><div class="flex items-center gap-2 mb-1"><span class="' + badge + ' px-1.5 py-0.5 rounded text-[10px] font-bold">' + item.cycleText + '</span><button onclick="deleteSchedule(\'' + item.id + '\'); event.stopPropagation();" class="absolute top-1 right-1 text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button></div><span class="text-xs font-bold text-slate-800">' + item.text + '</span></div>';
                     });
-
                     rHtml += '<div class="mb-3 border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm"><button onclick="toggleFolder(\'' + folderId + '\')" class="w-full flex justify-between items-center bg-slate-50 px-3 py-3 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"><span><i class="fa-solid fa-folder text-emerald-500 text-sm"></i> ' + oDate + ' 공부내용 (' + items.length + '건)</span><i class="fa-solid fa-chevron-down text-slate-400 transition-transform" id="icon_' + folderId + '"></i></button><div id="' + folderId + '" class="hidden flex-col p-2 bg-white">' + itemsHtml + '</div></div>';
                 }
                 rContainer.innerHTML = rHtml;
             }
         }
 
-        // 개인 공부 추가 및 복습 달력 등록 (에빙하우스)
         function addPersonalStudy() {
             const text = document.getElementById('personalStudyInput').value.trim();
             if(!text) return;
@@ -569,12 +539,10 @@
             });
         }
 
-        // 학교 시간표 선택 및 오늘 공부 등록 (체크박스)
         function renderTodayTimetable() {
             const dayOfWeek = realToday.getDay(); const todaySubjects = myTimetable[dayOfWeek] || [];
             const container = document.getElementById('todayTimetableDisplay');
             if (todaySubjects.length === 0) { container.innerHTML = '<span class="text-xs text-slate-400">주말이거나 설정된 시간표가 없습니다.</span>'; return; }
-
             let html = '';
             todaySubjects.forEach((sub, idx) => {
                 const val = (idx+1) + '교시: ' + sub;
@@ -587,13 +555,10 @@
             const checkboxes = document.querySelectorAll('.tt-checkbox:checked');
             if(checkboxes.length === 0) return alert('선택된 과목이 없습니다.');
             const todayStr = getYYYYMMDD(realToday);
-            checkboxes.forEach(cb => { 
-                db.ref('schedules').push({ date: todayStr, text: cb.value, type: 'school_review', timestamp: Date.now() }); 
-            });
+            checkboxes.forEach(cb => { db.ref('schedules').push({ date: todayStr, text: cb.value, type: 'school_review', timestamp: Date.now() }); });
             alert('선택한 ' + checkboxes.length + '개 과목이 달력 당일 복습에 추가되었습니다!');
         }
 
-        // 모달 및 기본 유틸들
         function openTimetableModal() {
             document.getElementById('ttMon').value = (myTimetable[1]||[]).join(', '); document.getElementById('ttTue').value = (myTimetable[2]||[]).join(', ');
             document.getElementById('ttWed').value = (myTimetable[3]||[]).join(', '); document.getElementById('ttThu').value = (myTimetable[4]||[]).join(', ');
@@ -614,7 +579,6 @@
             db.ref('schedules').push({ date: date, text: text, type: 'normal', timestamp: Date.now() }); closeScheduleModal();
         }
         function deleteSchedule(id) { if(confirm('일정을 삭제하시겠습니까?')) db.ref('schedules/'+id).remove(); }
-
         function getYYYYMMDD(dObj) { return dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0') + '-' + String(dObj.getDate()).padStart(2,'0'); }
 
         function createEbbinghausSchedules(baseText, sourceType, sourceId, originalDateStr = getYYYYMMDD(new Date())) {
@@ -626,7 +590,7 @@
         }
 
         // ==========================================
-        // 오답노트 (수정 없이 안정성 위해 코드 재결합)
+        // 오답노트
         // ==========================================
         let currentNoteType = '일반'; let currentNoteSub = '전체'; let currentNoteImg = null;
         function setNoteType(t) { 
@@ -637,9 +601,7 @@
         } 
         function setNoteSubject(s) { 
             currentNoteSub = s; 
-            document.querySelectorAll('.note-sub-btn').forEach(btn => {
-                btn.className = btn.dataset.sub===s ? "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md transition" : "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition";
-            });
+            document.querySelectorAll('.note-sub-btn').forEach(btn => { btn.className = btn.dataset.sub===s ? "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md transition" : "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition"; });
             renderNotes(); 
         }
         function renderNotes() {
@@ -688,11 +650,50 @@
         function deleteNote(id) { if(confirm("완전히 삭제하시겠습니까?")) db.ref('studyNotes/'+id).remove(); }
 
         // ==========================================
-        // 단어장 (날짜별 폴더 뷰 및 검색 안전 처리)
+        // 단어장 (폴더 전체 삭제 & 개별 단어 삭제)
         // ==========================================
         let ytPlayer = null; let currentPlayVocaPack = null; let currentCardIndex = 0;
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         
+        // 새로 추가된: 폴더(특정 날짜의 모든 팩) 전체 삭제 기능
+        function deleteVocaFolder(e, dateStr) {
+            e.stopPropagation();
+            if(confirm(dateStr + ' 날짜에 생성된 [모든 단어장]을 삭제하시겠습니까?')) {
+                allVocaPacks.forEach(pack => {
+                    if(getYYYYMMDD(new Date(pack.timestamp)) === dateStr) {
+                        db.ref('vocaPacks/' + pack.id).remove();
+                    }
+                });
+            }
+        }
+
+        // 새로 추가된: 플래시카드 화면에서 개별 단어 삭제 기능
+        function deleteCurrentWord(e) {
+            e.stopPropagation();
+            if(!confirm('이 단어를 단어장에서 완전히 삭제하시겠습니까?')) return;
+            
+            currentPlayVocaPack.words.splice(currentCardIndex, 1);
+            
+            if(currentPlayVocaPack.words.length === 0) {
+                // 단어가 모두 삭제되면 해당 팩도 삭제
+                db.ref('vocaPacks/' + currentPlayVocaPack.id).remove();
+                closeVocaPlayer();
+                alert('모든 단어가 삭제되어 단어장 팩이 자동으로 삭제되었습니다.');
+            } else {
+                // 남은 단어 DB 업데이트
+                db.ref('vocaPacks/' + currentPlayVocaPack.id + '/words').set(currentPlayVocaPack.words);
+                
+                // 인덱스 조정 (마지막 단어를 삭제했을 경우 처리)
+                if(currentCardIndex >= currentPlayVocaPack.words.length) {
+                    currentCardIndex = currentPlayVocaPack.words.length - 1;
+                }
+                
+                // 화면 리프레시
+                document.getElementById('fcCard').classList.remove('is-flipped');
+                setTimeout(updateCardUI, 150);
+            }
+        }
+
         function renderVocaPacks() {
             const grid = document.getElementById('vocaPackGrid');
             const searchDate = document.getElementById('vocaDateSearch').value;
@@ -712,7 +713,6 @@
             
             if (sortedDates.length === 0) { grid.innerHTML = '<p class="text-center py-20 text-slate-400 font-bold">조건에 맞는 단어장이 없습니다.</p>'; return; }
 
-            // 안전한 HTML 생성 (백틱 중첩 에러 방지용)
             sortedDates.forEach(date => {
                 const packs = grouped[date];
                 const fId = 'voca_folder_' + date.replace(/-/g, '');
@@ -727,7 +727,9 @@
                     packsHtml += '<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group cursor-pointer hover:border-indigo-400 hover:shadow-lg transition" onclick="openVocaPlayer(\'' + pack.id + '\')"><div class="h-32 bg-slate-900 relative"><img src="' + thumbUrl + '" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition"><div class="absolute bottom-3 left-3 right-3 flex justify-between items-end"><span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">단어 ' + (pack.words?pack.words.length:0) + '개</span><button onclick="deleteVocaPack(\'' + pack.id + '\'); event.stopPropagation();" class="text-white/50 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button></div></div><div class="p-4"><h4 class="font-bold text-slate-900 text-base leading-tight line-clamp-2">' + pack.title + '</h4></div></div>';
                 });
 
-                folderDiv.innerHTML = '<button onclick="toggleFolder(\'' + fId + '\')" class="w-full flex justify-between items-center bg-indigo-50/80 px-6 py-5 text-sm font-bold text-indigo-900 hover:bg-indigo-100 transition border-b border-slate-100"><span class="flex items-center gap-2"><i class="fa-solid fa-folder-open text-indigo-500 text-lg"></i> ' + date + ' 생성 단어장 (' + packs.length + '개 팩)</span><i class="fa-solid fa-chevron-down text-indigo-400 transition-transform" id="icon_' + fId + '"></i></button><div id="' + fId + '" class="hidden p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/50">' + packsHtml + '</div>';
+                // 폴더 헤더에 폴더 삭제 휴지통 아이콘 추가
+                folderDiv.innerHTML = '<div class="w-full flex justify-between items-center bg-indigo-50/80 px-6 py-5 border-b border-slate-100"><button onclick="toggleFolder(\'' + fId + '\')" class="flex-grow flex items-center gap-2 text-sm font-bold text-indigo-900 text-left hover:text-indigo-700 transition"><i class="fa-solid fa-folder-open text-indigo-500 text-lg"></i> ' + date + ' 생성 단어장 (' + packs.length + '개 팩)</button><div class="flex items-center gap-4"><button onclick="deleteVocaFolder(event, \'' + date + '\')" class="text-red-400 hover:text-red-600 transition px-2 py-1" title="이 폴더의 단어장 전체 삭제"><i class="fa-solid fa-trash-can text-lg"></i></button><i class="fa-solid fa-chevron-down text-indigo-400 transition-transform pointer-events-none" id="icon_' + fId + '"></i></div></div><div id="' + fId + '" class="hidden p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/50">' + packsHtml + '</div>';
+                
                 grid.appendChild(folderDiv);
             });
         }
@@ -749,7 +751,7 @@
                 closeVocaAddModal(); alert('단어장 생성 및 복습 달력 등록 완료!');
             });
         }
-        function deleteVocaPack(id) { if(confirm('삭제하시겠습니까?')) db.ref('vocaPacks/'+id).remove(); }
+        function deleteVocaPack(id) { if(confirm('단어장을 삭제하시겠습니까?')) db.ref('vocaPacks/'+id).remove(); }
 
         // 단어장 플레이어
         function openVocaPlayer(packId) {
@@ -757,7 +759,7 @@
             currentCardIndex = 0;
             document.getElementById('playerTitle').innerText = currentPlayVocaPack.title; 
             document.getElementById('fcCard').classList.remove('is-flipped');
-            updateCardUI(); // 플레이어 첫 카드 업데이트
+            updateCardUI(); 
             
             const ytId = extractYoutubeId(currentPlayVocaPack.url); 
             document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
@@ -767,7 +769,7 @@
             document.getElementById('vocaPlayerOverlay').classList.replace('hidden', 'flex');
         }
 
-        // 플래시카드 화면 업데이트 전용 함수
+        // 카드 UI 업데이트
         function updateCardUI() {
             const wObj = currentPlayVocaPack.words[currentCardIndex];
             document.getElementById('fcWord').innerText = wObj.word; 
