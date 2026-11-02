@@ -179,7 +179,7 @@
                             <div id="schoolScheduleList" class="space-y-2"></div>
                         </div>
 
-                        <!-- 에빙하우스 복습 -->
+                        <!-- 에빙하우스 복습 (삭제 버튼 탑재) -->
                         <div class="pt-4 border-t border-slate-100">
                             <span class="text-xs font-bold text-emerald-600 mb-2 block"><i class="fa-solid fa-rotate-right"></i> 자동 복습 목록 (클릭하여 폴더 열기)</span>
                             <div id="reviewScheduleList" class="space-y-2"></div>
@@ -560,6 +560,7 @@
             sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
             sList.forEach(item => { sContainer.innerHTML += '<div class="flex justify-between items-center bg-blue-50 p-2.5 rounded-lg border border-blue-100 shadow-sm mb-2"><span class="text-sm font-bold text-blue-900"><i class="fa-solid fa-check-circle text-blue-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-blue-300 hover:text-blue-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
+            // 자동 복습 목록 렌더링 (삭제 버튼 추가)
             const rContainer = document.getElementById('reviewScheduleList');
             if(rList.length === 0) { rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; } else {
                 const grouped = {};
@@ -610,7 +611,7 @@
 
                     Object.keys(mGroup).sort().forEach(mDate => {
                         const mDateObj = new Date(mDate);
-                        const folderTitle = mDate.substring(5) + ` (${daysArr[mDateObj.getDay()][cite: 2]})`;
+                        const folderTitle = mDate.substring(5) + ` (${daysArr[mDateObj.getDay()]})`;
                         const mFolderId = 'missed_' + mDate.replace(/-/g, '');
                         
                         let taskHtml = '';
@@ -869,6 +870,7 @@
             if(ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
             document.getElementById('youtubePlayer').outerHTML = '<div id="youtubePlayer"></div>';
             ytPlayer = new YT.Player('youtubePlayer', { height: '100%', width: '100%', videoId: ytId, playerVars: { 'controls': 1, 'playsinline': 1 } });
+            document.getElementById('vocaPlayerOverlay').classList.replace('flex', 'hidden'); // 수정
             document.getElementById('vocaPlayerOverlay').classList.replace('hidden', 'flex');
         }
 
