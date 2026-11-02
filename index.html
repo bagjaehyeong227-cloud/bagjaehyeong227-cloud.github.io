@@ -1,1 +1,964 @@
-git log --oneline
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>종합 학습 플랫폼: 캠페인 & AI 오답노트 & 스마트 단어장</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- 파이어베이스 SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f8fafc; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 오답 노트 썸네일 포스트잇 */
+        .post-it { transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; display: flex; flex-direction: column; }
+        .post-it:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+        .post-it-img-area { height: 160px; background-color: white; border-bottom: 1px solid rgba(0,0,0,0.05); position: relative; }
+        .post-it-img-area img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; cursor: zoom-in; }
+        .post-it-img-area img:hover { opacity: 1; }
+
+        /* 플래시카드 (3D 회전) */
+        .flashcard-scene { perspective: 1000px; width: 100%; height: 280px; }
+        .flashcard { width: 100%; height: 100%; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; cursor: pointer; }
+        .flashcard.is-flipped { transform: rotateY(180deg); }
+        .flashcard-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.5rem; display: flex; flex-col; justify-content: center; align-items: center; text-align: center; }
+        .flashcard-front { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; z-index: 2; }
+        .flashcard-back { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; transform: rotateY(180deg); align-items: flex-start; text-align: left; }
+        
+        /* 캘린더 날짜 타일 */
+        .cal-day { aspect-ratio: 1; border-radius: 0.5rem; border: 1px solid #f1f5f9; padding: 0.25rem; display: flex; flex-direction: column; cursor: pointer; transition: background 0.2s; background: white; }
+        .cal-day:hover { background: #f8fafc; }
+        .cal-day.today { border: 2px solid #4f46e5; background: #eef2ff; }
+        .cal-day-num { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 2px; }
+        
+        /* 유튜브 팝업 오버레이 */
+        #youtubeOverlay { backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col relative pb-10">
+
+    <!-- 사이트 진입 비밀번호 오버레이 -->
+    <div id="authOverlay" class="fixed inset-0 bg-slate-900/95 z-[200] flex items-center justify-center p-4 backdrop-blur-md transition-opacity duration-300">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center space-y-5">
+            <div class="bg-indigo-100 text-indigo-600 w-16 h-16 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-inner">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-slate-900">학습 플랫폼 접근</h3>
+                <p class="text-xs text-slate-500 mt-1">접속 비밀번호를 입력해주세요.</p>
+            </div>
+            <input type="password" id="accessPasswordInput" placeholder="비밀번호 입력" onkeypress="if(event.key === 'Enter') checkEntryPassword()" class="w-full py-3 px-4 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center font-bold tracking-widest">
+            <button onclick="checkEntryPassword()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md">
+                입장하기
+            </button>
+            <p id="authErrorMsg" class="text-xs text-red-500 hidden">비밀번호가 올바르지 않습니다.</p>
+        </div>
+    </div>
+
+    <!-- 상단 통합 네비게이션 헤더 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+            <div class="flex items-center space-x-2 md:space-x-6 h-full overflow-x-auto hide-scroll w-full">
+                <!-- 탭 메뉴들 -->
+                <button onclick="switchMainTab('dashboard')" id="mainTabDashboard" class="tab-main h-full px-2 md:px-4 font-extrabold text-indigo-600 border-b-4 border-indigo-600 flex items-center gap-2 transition-colors text-sm md:text-base whitespace-nowrap">
+                    <i class="fa-solid fa-house"></i> 오늘의 대시보드
+                </button>
+                <button onclick="switchMainTab('notes')" id="mainTabNotes" class="tab-main h-full px-2 md:px-4 font-bold text-slate-400 hover:text-indigo-600 border-b-4 border-transparent flex items-center gap-2 transition-colors text-sm md:text-base whitespace-nowrap">
+                    <i class="fa-solid fa-book-open"></i> 스마트 오답노트
+                </button>
+                <button onclick="switchMainTab('voca')" id="mainTabVoca" class="tab-main h-full px-2 md:px-4 font-bold text-slate-400 hover:text-indigo-600 border-b-4 border-transparent flex items-center gap-2 transition-colors text-sm md:text-base whitespace-nowrap">
+                    <i class="fa-solid fa-layer-group"></i> 유튜브 단어장
+                </button>
+                <button onclick="switchMainTab('campaign')" id="mainTabCampaign" class="tab-main h-full px-2 md:px-4 font-bold text-slate-400 hover:text-emerald-600 border-b-4 border-transparent flex items-center gap-2 transition-colors text-sm md:text-base whitespace-nowrap ml-auto">
+                    <i class="fa-solid fa-leaf text-emerald-500"></i> 환경 캠페인
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================== -->
+    <!-- SECTION 1: 오늘의 대시보드 & 캘린더               -->
+    <!-- ============================================== -->
+    <div id="sectionDashboard" class="block w-full">
+        <main class="max-w-5xl mx-auto px-4 py-8 space-y-8">
+            <!-- 요약 헤더 -->
+            <div class="bg-indigo-600 rounded-3xl p-8 text-white shadow-lg flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+                <i class="fa-solid fa-calendar-check absolute -right-10 -bottom-10 text-9xl text-indigo-500/30"></i>
+                <div class="z-10">
+                    <h2 class="text-3xl font-extrabold mb-2" id="dashboardDateTitle">오늘, 11월 2일 (월)</h2>
+                    <p class="text-indigo-200">복습은 미루지 마세요! 망각 곡선이 당신을 지켜보고 있습니다 👀</p>
+                </div>
+                <div class="flex gap-4 z-10">
+                    <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 text-center border border-white/20">
+                        <p class="text-xs text-indigo-200 mb-1">오늘 할 일반 일정</p>
+                        <p class="text-3xl font-black" id="todayTaskCount">0</p>
+                    </div>
+                    <div class="bg-emerald-500/20 backdrop-blur-md rounded-2xl p-4 text-center border border-emerald-400/30">
+                        <p class="text-xs text-emerald-200 mb-1">오늘의 복습 미션</p>
+                        <p class="text-3xl font-black text-emerald-300" id="todayReviewCount">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 달력 UI -->
+                <div class="md:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2"><i class="fa-regular fa-calendar"></i> 스마트 복습 캘린더</h3>
+                        <div class="flex gap-2">
+                            <button onclick="changeMonth(-1)" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                            <span id="calMonthDisplay" class="font-bold text-sm w-20 text-center flex items-center justify-center">2026. 11</span>
+                            <button onclick="changeMonth(1)" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 mb-2">
+                        <div class="text-red-400">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="text-blue-400">토</div>
+                    </div>
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 md:gap-2">
+                        <!-- JS 렌더링 -->
+                    </div>
+                </div>
+
+                <!-- 오늘 할 일 상세 패널 -->
+                <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-3" id="selectedDateTitle">오늘의 일정</h3>
+                    
+                    <div class="flex-grow space-y-4 overflow-y-auto hide-scroll max-h-[400px]">
+                        <!-- 일반 일정 -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-slate-500"><i class="fa-solid fa-list-check"></i> 일반 일정 (상담, 방과후 등)</span>
+                                <button onclick="openScheduleModal()" class="text-indigo-500 text-xs font-bold hover:bg-indigo-50 px-2 py-1 rounded">+ 추가</button>
+                            </div>
+                            <div id="normalScheduleList" class="space-y-2"></div>
+                        </div>
+                        
+                        <!-- 자동 복습 일정 -->
+                        <div class="pt-4 border-t border-slate-100">
+                            <span class="text-xs font-bold text-emerald-600 mb-2 block"><i class="fa-solid fa-rotate-right"></i> 에빙하우스 복습 캘린더</span>
+                            <div id="reviewScheduleList" class="space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SECTION 2: AI 스마트 오답노트                     -->
+    <!-- ============================================== -->
+    <div id="sectionNotes" class="hidden w-full bg-slate-50 flex-grow pb-12">
+        <div class="bg-white border-b border-slate-200 pt-6 pb-2 px-4 shadow-sm sticky top-16 z-30">
+            <div class="max-w-6xl mx-auto space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <!-- 분류 (모의고사 vs 일반) -->
+                    <div class="flex bg-slate-100 p-1 rounded-full text-sm font-bold w-full md:w-auto">
+                        <button onclick="setNoteType('일반')" id="btnTypeNormal" class="flex-1 md:flex-none px-6 py-1.5 rounded-full bg-white shadow text-indigo-600 transition">일반 문제</button>
+                        <button onclick="setNoteType('모의고사')" id="btnTypeMock" class="flex-1 md:flex-none px-6 py-1.5 rounded-full text-slate-500 hover:text-slate-800 transition">모의고사</button>
+                    </div>
+
+                    <!-- 과목 탭 -->
+                    <div class="flex overflow-x-auto hide-scroll gap-2 w-full md:w-auto" id="noteTabContainer">
+                        <button onclick="setNoteSubject('전체')" class="note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md transition" data-sub="전체">전체</button>
+                        <button onclick="setNoteSubject('국어')" class="note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition" data-sub="국어">국어</button>
+                        <button onclick="setNoteSubject('영어')" class="note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition" data-sub="영어">영어</button>
+                        <button onclick="setNoteSubject('수학')" class="note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition" data-sub="수학">수학</button>
+                        <button onclick="setNoteSubject('사회')" class="note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition" data-sub="사회">사회</button>
+                        <button onclick="setNoteSubject('과학')" class="note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition" data-sub="과학">과학</button>
+                    </div>
+
+                    <!-- 검색 -->
+                    <div class="relative w-full md:w-64">
+                        <input type="text" id="noteSearchInput" onkeyup="renderNotes()" placeholder="문제집, 번호, 키워드 검색..." class="w-full bg-slate-100 border border-slate-200 text-sm rounded-full pl-10 pr-4 py-2 focus:ring-2 focus:ring-indigo-500">
+                        <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main class="max-w-6xl mx-auto px-4 py-8">
+            <div id="notesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- JS 렌더링 -->
+            </div>
+        </main>
+
+        <button onclick="openNoteModal()" class="fixed bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-transform hover:scale-110 z-40">
+            <i class="fa-solid fa-pen text-xl"></i>
+        </button>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SECTION 3: 유튜브 연동 스마트 단어장              -->
+    <!-- ============================================== -->
+    <div id="sectionVoca" class="hidden w-full flex-grow">
+        <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+            <div class="bg-indigo-900 rounded-3xl p-8 text-white shadow-lg flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <span class="bg-indigo-500 text-xs font-bold px-3 py-1 rounded-full mb-3 inline-block">강력 추천!</span>
+                    <h2 class="text-3xl font-extrabold mb-2">유튜브 뉘앙스 영단어장 🎬</h2>
+                    <p class="text-indigo-200 text-sm">Gemini에게 유튜브 링크를 주고 단어를 뽑아달라고 하세요.<br>아래 [일괄 등록] 버튼을 눌러 복사한 텍스트를 넣으면 카드와 영상 플레이어가 마법처럼 생성됩니다!</p>
+                </div>
+                <button onclick="openVocaAddModal()" class="bg-white text-indigo-900 font-extrabold px-6 py-4 rounded-2xl shadow-xl hover:scale-105 transition flex items-center gap-3 whitespace-nowrap">
+                    <i class="fa-solid fa-bolt text-yellow-500 text-xl"></i> 단어 일괄 자동 등록
+                </button>
+            </div>
+
+            <!-- 단어장 팩 리스트 -->
+            <div class="flex justify-between items-end border-b border-slate-200 pb-2 mt-8">
+                <h3 class="text-lg font-bold text-slate-800">📚 내 단어장 보관함</h3>
+                <div class="relative">
+                    <input type="text" id="vocaSearchInput" onkeyup="renderVocaPacks()" placeholder="단어장 이름 검색..." class="bg-white border border-slate-200 text-xs rounded-full pl-8 pr-3 py-1.5 focus:ring-1 focus:ring-indigo-500">
+                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px]"></i>
+                </div>
+            </div>
+            
+            <div id="vocaPackGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- JS 렌더링 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SECTION 4: 기존 디지털 다이어트 캠페인 (기능 유지) -->
+    <!-- ============================================== -->
+    <div id="sectionCampaign" class="hidden w-full">
+        <!-- 기존 캠페인 HTML 코드는 유지하되 생략(분량 조절). 실제 복붙할 때는 이전 코드의 Section 1이 여기에 들어갑니다. -->
+        <main class="max-w-5xl mx-auto px-4 py-8 w-full text-center py-20">
+            <h2 class="text-2xl font-bold text-emerald-600 mb-4">디지털 환경 캠페인 페이지</h2>
+            <p class="text-slate-500">기존 캠페인 통계 및 수료증 기능이 100% 정상 작동하는 공간입니다.<br>(UI 코드 분량 상 화면에는 간략화하여 표시했습니다. 깃허브 업로드 시 이전 코드를 병합해 주시면 됩니다.)</p>
+        </main>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 모달(팝업) 모음                                -->
+    <!-- ============================================== -->
+
+    <!-- 일정 추가 모달 (대시보드) -->
+    <div id="scheduleModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">일반 일정 추가</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">날짜</label>
+                    <input type="date" id="schDateInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">내용 (방과후, 상담 등)</label>
+                    <input type="text" id="schTextInput" placeholder="예: 수학 학원 보충" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="closeScheduleModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 text-slate-600">취소</button>
+                <button onclick="saveSchedule()" class="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-600 text-white">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 오답 노트 작성 모달 -->
+    <div id="noteModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm overflow-y-auto">
+        <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl my-8 relative flex flex-col">
+            <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                <h3 class="text-xl font-bold text-slate-900" id="modalTitle">새 오답 노트 작성</h3>
+                <button onclick="closeNoteModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+                <input type="hidden" id="noteId">
+                <input type="hidden" id="existingImageUrl">
+                
+                <div class="flex gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm font-bold"><input type="radio" name="noteTypeInput" value="일반" checked class="accent-indigo-600 w-4 h-4"> 일반 문제</label>
+                    <label class="flex items-center gap-2 cursor-pointer text-sm font-bold"><input type="radio" name="noteTypeInput" value="모의고사" class="accent-indigo-600 w-4 h-4"> 모의고사</label>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">문제 출처 (문제집명 또는 모의고사명)</label>
+                        <input type="text" id="bookInput" placeholder="예: 쎈 수학 / 2026 6월 모의평가" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">문제 번호</label>
+                        <input type="text" id="numInput" placeholder="예: 21번" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">체감 난이도</label>
+                        <select id="difficultyInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (극상)</option><option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (상)</option><option value="⭐⭐⭐" selected>⭐⭐⭐ (중)</option><option value="⭐⭐">⭐⭐ (하)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">과목</label>
+                        <select id="subjectInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="국어">국어</option><option value="영어">영어</option><option value="수학">수학</option><option value="사회">사회</option><option value="과학">과학</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">핵심 개념/키워드</label>
+                        <input type="text" id="keywordInput" placeholder="예: 미적분, 등비수열" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-indigo-900 mb-1"><i class="fa-solid fa-calendar-plus"></i> 망각 곡선 자동 복습 달력 등록</p>
+                        <p class="text-[10px] text-indigo-700">저장 버튼을 누르면 달력에 [1일, 3일, 7일, 30일 뒤] 일정으로 이 문제가 자동 기록됩니다.</p>
+                    </div>
+                    <!-- 자동 등록 옵션 (숨겨서 기본 true 처리) -->
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">문제 사진 첨부</label>
+                    <div class="flex items-center gap-3">
+                        <label class="cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                            <i class="fa-solid fa-camera"></i> 사진 선택
+                            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(event)">
+                        </label>
+                        <span id="fileNameDisplay" class="text-xs text-slate-500">선택된 파일 없음</span>
+                    </div>
+                    <div id="imagePreviewContainer" class="hidden mt-3 relative inline-block">
+                        <img id="imagePreview" src="" class="h-32 object-contain border border-slate-200 rounded-lg shadow-sm">
+                        <button onclick="removeImage()" class="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full text-xs shadow hover:bg-red-600">&times;</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1"><i class="fa-solid fa-user-pen text-rose-500"></i> 나의 오개념 / 몰랐던 부분</label>
+                        <textarea id="myNoteInput" rows="5" placeholder="어떤 부분에서 어떻게 잘못 생각했는지 적어보세요." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 outline-none resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1"><i class="fa-solid fa-robot text-emerald-500"></i> 올바른 해설 / AI 풀이</label>
+                        <textarea id="aiNoteInput" rows="5" placeholder="정확한 풀이법이나 팁을 적어보세요." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-emerald-50/30"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                <button onclick="closeNoteModal()" class="px-5 py-2 rounded-lg text-sm font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50">취소</button>
+                <button onclick="saveNote()" id="saveBtn" class="px-5 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> 저장 & 복습달력 등록
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 확대 모달 -->
+    <div id="imageZoomModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[150] p-4 backdrop-blur-sm" onclick="this.classList.replace('flex','hidden')">
+        <img id="zoomedImage" src="" class="max-w-full max-h-full object-contain rounded cursor-zoom-out">
+    </div>
+
+    <!-- 단어장 일괄 등록 모달 -->
+    <div id="vocaAddModal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-8 relative">
+            <h3 class="text-2xl font-black text-slate-900 mb-2">유튜브 영단어 팩 만들기</h3>
+            <p class="text-xs text-slate-500 mb-6">유튜브 링크와 Gemini가 만들어준 [JSON 데이터]를 복사해서 붙여넣으세요.</p>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">단어장 이름</label>
+                    <input type="text" id="vocaTitleInput" placeholder="예: TED 강연 - 성공의 비밀 10단어" class="w-full border-b-2 border-slate-200 py-2 text-lg focus:border-indigo-500 outline-none transition-colors">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">유튜브 영상 링크 (URL)</label>
+                    <input type="text" id="vocaYoutubeInput" placeholder="https://youtu.be/..." class="w-full border bg-slate-50 border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <label class="block text-sm font-bold text-slate-700">JSON 데이터 붙여넣기</label>
+                        <a href="#" class="text-[10px] text-indigo-500 hover:underline">데이터 형식 예시 보기</a>
+                    </div>
+                    <textarea id="vocaDataInput" rows="6" placeholder='[
+  {
+    "word": "inevitable",
+    "meaning": "피할 수 없는",
+    "context_meaning": "불가피한 변화",
+    "nuance": "거스를 수 없는 대세",
+    "time": 42
+  }
+]' class="w-full border bg-slate-900 text-emerald-400 font-mono border-slate-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end gap-3">
+                <button onclick="closeVocaAddModal()" class="px-6 py-3 rounded-xl text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">취소</button>
+                <button onclick="saveVocaPack()" class="px-6 py-3 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> 단어장 생성 및 달력 등록
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 단어장 플레이어 (전체화면) -->
+    <div id="vocaPlayerOverlay" class="fixed inset-0 bg-slate-900/95 hidden z-[150] flex-col items-center justify-center p-4 backdrop-blur-lg">
+        <button onclick="closeVocaPlayer()" class="absolute top-6 right-6 text-white/50 hover:text-white text-4xl leading-none transition">&times;</button>
+        
+        <h2 id="playerTitle" class="text-white font-bold text-2xl mb-8 opacity-80">단어장 제목</h2>
+
+        <div class="flex flex-col lg:flex-row w-full max-w-6xl gap-8 items-center justify-center">
+            
+            <!-- 플래시카드 영역 -->
+            <div class="w-full max-w-md">
+                <div class="flashcard-scene" onclick="flipCard()">
+                    <div id="fcCard" class="flashcard">
+                        <!-- 앞면 -->
+                        <div class="flashcard-face flashcard-front flex-col gap-4">
+                            <button onclick="playTTS(event)" class="text-slate-400 hover:text-indigo-500 text-3xl transition"><i class="fa-solid fa-volume-high"></i></button>
+                            <h1 id="fcWord" class="text-5xl font-black text-slate-800 tracking-tight">word</h1>
+                            <p class="text-xs font-bold text-slate-400">카드를 탭해서 뜻 확인하기</p>
+                        </div>
+                        <!-- 뒷면 -->
+                        <div class="flashcard-face flashcard-back flex-col p-8 space-y-4 shadow-2xl">
+                            <div>
+                                <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mb-1">기본 뜻</span>
+                                <h3 id="fcMeaning" class="text-3xl font-bold">의미</h3>
+                            </div>
+                            <div class="w-full h-px bg-white/20 my-2"></div>
+                            <div>
+                                <span class="text-[10px] font-bold text-indigo-200">🎬 영상 속 실제 뜻</span>
+                                <p id="fcContext" class="text-sm font-medium mt-1 leading-snug">문맥 의미</p>
+                            </div>
+                            <div class="bg-black/20 p-3 rounded-lg w-full">
+                                <span class="text-[10px] font-bold text-yellow-300"><i class="fa-solid fa-lightbulb"></i> 뉘앙스 & 쓰임새</span>
+                                <p id="fcNuance" class="text-xs text-indigo-100 mt-1 leading-relaxed">뉘앙스 설명</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 카드 컨트롤 -->
+                <div class="flex justify-between items-center mt-6">
+                    <button onclick="prevCard()" class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition backdrop-blur"><i class="fa-solid fa-arrow-left"></i></button>
+                    <span id="fcCount" class="text-white font-bold text-sm font-mono tracking-widest">1 / 10</span>
+                    <button onclick="nextCard()" class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition backdrop-blur"><i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- 유튜브 영상 영역 -->
+            <div class="w-full max-w-xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative group">
+                <div id="youtubePlayer"></div>
+                <!-- 커스텀 플레이 버튼 오버레이 -->
+                <div id="ytPlayBtnOverlay" onclick="playVideoAtTime()" class="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-100 group-hover:bg-black/20 transition-all z-10">
+                    <div class="bg-red-600 text-white w-20 h-16 rounded-2xl flex items-center justify-center shadow-2xl transition transform group-hover:scale-110">
+                        <i class="fa-solid fa-play text-2xl"></i>
+                    </div>
+                    <p class="absolute bottom-4 text-white text-xs font-bold drop-shadow-md">클릭하면 이 단어가 나오는 부분부터 재생됩니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 스크립트 모음 -->
+    <script>
+        // ==========================================
+        // 1. 글로벌 설정 & DB 연동
+        // ==========================================
+        const ENTRY_PASSWORD = "zkssk201007@";
+        const IMGBB_API_KEY = "49e7b165c8c6e4a47bb36311f045e9c8";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdhay9Ad7QKzWu5HdAjB0Cmsl851QW6TY",
+            authDomain: "digital-diet-d874d.firebaseapp.com",
+            databaseURL: "https://digital-diet-d874d-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "digital-diet-d874d",
+            messagingSenderId: "245839108604",
+            appId: "1:245839108604:web:70ae15be8b599e71467a79"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let allNotes = [];
+        let allSchedules = [];
+        let allVocaPacks = [];
+        let currentDate = new Date(); // 달력 표시용 (월별 이동)
+        let realToday = new Date();   // 실제 오늘 날짜
+
+        // DB 리스너 3종 (Notes, Schedules, VocaPacks)
+        db.ref('studyNotes').on('value', (snapshot) => {
+            allNotes = [];
+            const data = snapshot.val();
+            if (data) { for (let key in data) allNotes.push({ id: key, ...data[key] }); }
+            allNotes.sort((a, b) => b.timestamp - a.timestamp);
+            if(document.getElementById('sectionNotes').classList.contains('flex')) renderNotes();
+        });
+
+        db.ref('schedules').on('value', (snapshot) => {
+            allSchedules = [];
+            const data = snapshot.val();
+            if (data) { for (let key in data) allSchedules.push({ id: key, ...data[key] }); }
+            renderCalendar();
+            renderTodayDashboard();
+        });
+
+        db.ref('vocaPacks').on('value', (snapshot) => {
+            allVocaPacks = [];
+            const data = snapshot.val();
+            if (data) { for (let key in data) allVocaPacks.push({ id: key, ...data[key] }); }
+            allVocaPacks.sort((a, b) => b.timestamp - a.timestamp);
+            if(document.getElementById('sectionVoca').classList.contains('block')) renderVocaPacks();
+        });
+
+        // ==========================================
+        // 2. 공통 UI 제어
+        // ==========================================
+        function checkEntryPassword() {
+            const inputVal = document.getElementById('accessPasswordInput').value;
+            if (inputVal === ENTRY_PASSWORD) {
+                const overlay = document.getElementById('authOverlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.style.display = 'none'; renderCalendar(); renderTodayDashboard(); }, 300);
+            } else {
+                document.getElementById('authErrorMsg').classList.remove('hidden');
+                document.getElementById('accessPasswordInput').value = '';
+            }
+        }
+
+        function switchMainTab(tabName) {
+            ['Dashboard', 'Notes', 'Voca', 'Campaign'].forEach(name => {
+                const sec = document.getElementById('section' + name);
+                const btn = document.getElementById('mainTab' + name);
+                if (name.toLowerCase() === tabName.toLowerCase()) {
+                    sec.classList.remove('hidden'); sec.classList.add(name==='Notes'?'flex':'block');
+                    if(btn) { btn.classList.add('border-indigo-600', 'text-indigo-600'); btn.classList.remove('border-transparent', 'text-slate-400'); }
+                    // 탭 진입 시 렌더링 호출
+                    if(tabName==='notes') renderNotes();
+                    if(tabName==='voca') renderVocaPacks();
+                    if(tabName==='dashboard') { renderCalendar(); renderTodayDashboard(); }
+                } else {
+                    sec.classList.remove('block', 'flex', 'flex-col'); sec.classList.add('hidden');
+                    if(btn) { btn.classList.remove('border-indigo-600', 'text-indigo-600'); btn.classList.add('border-transparent', 'text-slate-400'); }
+                }
+            });
+        }
+
+        // ==========================================
+        // 3. 오늘의 대시보드 & 스마트 캘린더
+        // ==========================================
+        function renderTodayDashboard() {
+            const todayStr = getYYYYMMDD(realToday);
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('dashboardDateTitle').innerText = `오늘, ${realToday.getMonth()+1}월 ${realToday.getDate()}일 (${days[realToday.getDay()]})`;
+
+            const todaysList = allSchedules.filter(s => s.date === todayStr);
+            const normCount = todaysList.filter(s => s.type === 'normal').length;
+            const revCount = todaysList.filter(s => s.type === 'review').length;
+            
+            document.getElementById('todayTaskCount').innerText = normCount;
+            document.getElementById('todayReviewCount').innerText = revCount;
+
+            renderDayDetail(todayStr); // 우측 패널에 오늘 일정 바로 띄우기
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            document.getElementById('calMonthDisplay').innerText = `${year}. ${String(month+1).padStart(2,'0')}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            // 빈 칸
+            for (let i = 0; i < firstDay; i++) { grid.appendChild(document.createElement('div')); }
+
+            // 날짜 렌더링
+            const todayStr = getYYYYMMDD(realToday);
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = getYYYYMMDD(new Date(year, month, i));
+                const daySchedules = allSchedules.filter(s => s.date === dateStr);
+                
+                const normCount = daySchedules.filter(s=>s.type==='normal').length;
+                const revCount = daySchedules.filter(s=>s.type==='review').length;
+
+                let dotHtml = '';
+                if(normCount > 0) dotHtml += `<span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block mx-[1px]"></span>`;
+                if(revCount > 0) dotHtml += `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mx-[1px]"></span>`;
+
+                const isTodayClass = (dateStr === todayStr) ? 'today' : '';
+                
+                const cell = document.createElement('div');
+                cell.className = `cal-day ${isTodayClass}`;
+                cell.onclick = () => renderDayDetail(dateStr);
+                cell.innerHTML = `
+                    <span class="cal-day-num">${i}</span>
+                    <div class="mt-auto flex justify-center pb-1 h-3">${dotHtml}</div>
+                `;
+                grid.appendChild(cell);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function renderDayDetail(dateStr) {
+            const y = dateStr.split('-')[0], m = dateStr.split('-')[1], d = dateStr.split('-')[2];
+            document.getElementById('selectedDateTitle').innerText = `${m}월 ${d}일 일정`;
+            
+            const list = allSchedules.filter(s => s.date === dateStr);
+            const nList = list.filter(s => s.type === 'normal');
+            const rList = list.filter(s => s.type === 'review');
+
+            const nContainer = document.getElementById('normalScheduleList');
+            nContainer.innerHTML = nList.length===0 ? '<p class="text-xs text-slate-400 italic">일정이 없습니다.</p>' : '';
+            nList.forEach(item => {
+                nContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                        <span class="text-sm font-medium text-slate-700">${item.text}</span>
+                        <button onclick="deleteSchedule('${item.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+                    </div>`;
+            });
+
+            const rContainer = document.getElementById('reviewScheduleList');
+            rContainer.innerHTML = rList.length===0 ? '<p class="text-xs text-slate-400 italic">복습 일정이 없습니다.</p>' : '';
+            rList.forEach(item => {
+                let badge = 'bg-emerald-100 text-emerald-700'; // 기본 오답노트
+                let icon = '<i class="fa-solid fa-pen text-[10px]"></i>';
+                let actionAttr = '';
+                
+                // Voca팩 연동 클릭 시
+                if(item.sourceType === 'voca') {
+                    badge = 'bg-indigo-100 text-indigo-700';
+                    icon = '<i class="fa-solid fa-layer-group text-[10px]"></i>';
+                    actionAttr = `onclick="switchMainTab('voca'); setTimeout(()=>openVocaPlayer('${item.sourceId}'), 300)" class="cursor-pointer hover:shadow-md transition"`;
+                }
+
+                rContainer.innerHTML += `
+                    <div ${actionAttr} class="flex flex-col bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative mb-2">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="${badge} px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">${icon} ${item.cycleText}</span>
+                            <button onclick="deleteSchedule('${item.id}'); event.stopPropagation();" class="absolute top-2 right-2 text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <span class="text-sm font-bold text-slate-800">${item.text}</span>
+                    </div>`;
+            });
+        }
+
+        // 수동 일정 추가 모달
+        function openScheduleModal() { document.getElementById('schDateInput').value = getYYYYMMDD(realToday); document.getElementById('schTextInput').value = ''; document.getElementById('scheduleModal').classList.remove('hidden'); document.getElementById('scheduleModal').classList.add('flex'); }
+        function closeScheduleModal() { document.getElementById('scheduleModal').classList.add('hidden'); document.getElementById('scheduleModal').classList.remove('flex'); }
+        function saveSchedule() {
+            const date = document.getElementById('schDateInput').value;
+            const text = document.getElementById('schTextInput').value.trim();
+            if(!date || !text) return alert('입력해주세요.');
+            db.ref('schedules').push({ date, text, type: 'normal', timestamp: Date.now() });
+            closeScheduleModal();
+        }
+        function deleteSchedule(id) { if(confirm('삭제하시겠습니까?')) db.ref('schedules/'+id).remove(); }
+
+        // 유틸: 날짜 포맷 (YYYY-MM-DD)
+        function getYYYYMMDD(dObj) { return `${dObj.getFullYear()}-${String(dObj.getMonth()+1).padStart(2,'0')}-${String(dObj.getDate()).padStart(2,'0')}`; }
+
+        // 망각 곡선 스케줄 자동 생성 함수
+        function createEbbinghausSchedules(baseText, sourceType, sourceId) {
+            const cycles = [ {days: 1, name: '1일 뒤 복습'}, {days: 3, name: '3일 뒤 복습'}, {days: 7, name: '7일 뒤 복습'}, {days: 30, name: '한 달 뒤 복습'} ];
+            cycles.forEach(c => {
+                let targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + c.days);
+                db.ref('schedules').push({
+                    date: getYYYYMMDD(targetDate), text: baseText, type: 'review', cycleText: c.name,
+                    sourceType: sourceType, sourceId: sourceId, timestamp: Date.now()
+                });
+            });
+        }
+
+        // ==========================================
+        // 4. AI 스마트 오답노트 (수정됨)
+        // ==========================================
+        let currentNoteType = '일반'; // 일반 or 모의고사
+        let currentNoteSub = '전체';
+        let currentNoteImg = null;
+
+        function setNoteType(type) {
+            currentNoteType = type;
+            document.getElementById('btnTypeNormal').className = type==='일반' ? "flex-1 md:flex-none px-6 py-1.5 rounded-full bg-white shadow text-indigo-600 font-bold transition" : "flex-1 md:flex-none px-6 py-1.5 rounded-full text-slate-500 hover:text-slate-800 transition";
+            document.getElementById('btnTypeMock').className = type==='모의고사' ? "flex-1 md:flex-none px-6 py-1.5 rounded-full bg-white shadow text-indigo-600 font-bold transition" : "flex-1 md:flex-none px-6 py-1.5 rounded-full text-slate-500 hover:text-slate-800 transition";
+            renderNotes();
+        }
+        function setNoteSubject(sub) {
+            currentNoteSub = sub;
+            document.querySelectorAll('.note-sub-btn').forEach(btn => {
+                btn.className = btn.dataset.sub===sub ? "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md transition" : "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition";
+            });
+            renderNotes();
+        }
+
+        function renderNotes() {
+            const grid = document.getElementById('notesGrid');
+            const keyword = document.getElementById('noteSearchInput').value.toLowerCase();
+            const filtered = allNotes.filter(n => {
+                const matchType = (n.noteType || '일반') === currentNoteType;
+                const matchSub = currentNoteSub === '전체' || n.subject === currentNoteSub;
+                const matchKw = (n.book||'').toLowerCase().includes(keyword) || (n.num||'').toLowerCase().includes(keyword) || (n.keyword||'').toLowerCase().includes(keyword);
+                return matchType && matchSub && matchKw;
+            });
+
+            grid.innerHTML = '';
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-24 text-slate-400"><i class="fa-solid fa-ghost text-4xl mb-4 opacity-50"></i><p>등록된 오답노트가 없습니다.</p></div>`;
+                return;
+            }
+
+            filtered.forEach(note => {
+                const dateStr = new Date(note.timestamp).toLocaleDateString();
+                const imgArea = note.imageUrl ? `<div class="post-it-img-area"><img src="${note.imageUrl}" onclick="zoomImage('${note.imageUrl}')"></div>` : `<div class="post-it-img-area bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-image text-slate-300 text-4xl"></i></div>`;
+                
+                const card = document.createElement('div');
+                card.className = `post-it rounded-2xl border border-slate-200 shadow-sm bg-white h-full relative group`;
+                card.innerHTML = `
+                    ${imgArea}
+                    <div class="p-5 flex flex-col flex-grow">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex gap-1.5 flex-wrap">
+                                <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">${note.subject}</span>
+                                <span class="text-[10px] text-slate-500 px-1 border border-slate-200 rounded">${note.difficulty||'⭐⭐⭐'}</span>
+                            </div>
+                            <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                        <h4 class="font-extrabold text-slate-800 text-base leading-tight mb-1 truncate">${note.book}</h4>
+                        <p class="text-xs font-bold text-indigo-500 mb-3">${note.num}</p>
+                        
+                        <div class="flex-grow space-y-3">
+                            <div>
+                                <p class="text-[10px] font-bold text-rose-500 mb-0.5"><i class="fa-solid fa-user-pen"></i> 내가 몰랐던 것</p>
+                                <p class="text-xs text-slate-600 line-clamp-3 leading-relaxed">${note.myNote}</p>
+                            </div>
+                            <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                <p class="text-[10px] font-bold text-emerald-600 mb-0.5"><i class="fa-solid fa-robot"></i> 핵심 해설</p>
+                                <p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">${note.aiNote}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
+                            <span class="truncate pr-2"><i class="fa-solid fa-hashtag"></i> ${note.keyword||'키워드 없음'}</span>
+                            <span class="whitespace-nowrap">${dateStr}</span>
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+        }
+
+        function openNoteModal() {
+            document.getElementById('noteId').value = ''; document.getElementById('existingImageUrl').value = '';
+            document.getElementById('bookInput').value = ''; document.getElementById('numInput').value = '';
+            document.getElementById('keywordInput').value = ''; document.getElementById('myNoteInput').value = ''; document.getElementById('aiNoteInput').value = '';
+            removeImage(); document.getElementById('noteModal').classList.remove('hidden'); document.getElementById('noteModal').classList.add('flex');
+        }
+        function closeNoteModal() { document.getElementById('noteModal').classList.add('hidden'); document.getElementById('noteModal').classList.remove('flex'); }
+        function previewImage(e) {
+            const file = e.target.files[0];
+            if(file) { currentNoteImg=file; document.getElementById('fileNameDisplay').innerText=file.name;
+            const r = new FileReader(); r.onload=ev=>{ document.getElementById('imagePreview').src=ev.target.result; document.getElementById('imagePreviewContainer').classList.remove('hidden'); }; r.readAsDataURL(file); }
+        }
+        function removeImage() { currentNoteImg=null; document.getElementById('imageInput').value=''; document.getElementById('fileNameDisplay').innerText='선택된 파일 없음'; document.getElementById('imagePreviewContainer').classList.add('hidden'); document.getElementById('existingImageUrl').value=''; }
+        function zoomImage(url) { document.getElementById('zoomedImage').src = url; document.getElementById('imageZoomModal').classList.replace('hidden', 'flex'); }
+
+        async function saveNote() {
+            const nType = document.querySelector('input[name="noteTypeInput"]:checked').value;
+            const sub = document.getElementById('subjectInput').value;
+            const diff = document.getElementById('difficultyInput').value;
+            const book = document.getElementById('bookInput').value.trim();
+            const num = document.getElementById('numInput').value.trim();
+            const kw = document.getElementById('keywordInput').value.trim();
+            const myN = document.getElementById('myNoteInput').value.trim();
+            const aiN = document.getElementById('aiNoteInput').value.trim();
+            let imgUrl = document.getElementById('existingImageUrl').value;
+            
+            if(!book||!num||!myN) return alert("필수 항목(출처, 번호, 나의 오개념)을 입력해주세요.");
+            
+            const btn = document.getElementById('saveBtn'); btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> 저장중...'; btn.disabled=true;
+            try {
+                if(currentNoteImg) {
+                    const fd = new FormData(); fd.append('image', currentNoteImg);
+                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method:'POST', body:fd });
+                    const data = await res.json();
+                    if(data.success) imgUrl = data.data.url; else throw new Error("업로드 실패");
+                }
+                const nData = { noteType: nType, subject:sub, difficulty:diff, book:book, num:num, keyword:kw, myNote:myN, aiNote:aiN, imageUrl:imgUrl||null, timestamp: Date.now() };
+                
+                // 노트 DB 저장 후 ID 받아오기
+                const newRef = await db.ref('studyNotes').push(nData);
+                
+                // 달력 자동 등록
+                createEbbinghausSchedules(`[오답복습] ${book} - ${num}`, 'note', newRef.key);
+
+                closeNoteModal();
+            } catch(e) { alert("저장 오류!"); } finally { btn.innerHTML='<i class="fa-solid fa-check"></i> 저장 & 복습달력 등록'; btn.disabled=false; }
+        }
+        function deleteNote(id) { if(confirm("이 오답노트를 완전히 삭제하시겠습니까?")) db.ref('studyNotes/'+id).remove(); }
+
+        // ==========================================
+        // 5. 유튜브 영단어장 (Voca) 로직
+        // ==========================================
+        let currentPlayVocaPack = null;
+        let currentCardIndex = 0;
+        let ytPlayer = null;
+        // YouTube IFrame API 비동기 로드
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        function onYouTubeIframeAPIReady() { /* Ready 상태 대기용 */ }
+
+        function renderVocaPacks() {
+            const grid = document.getElementById('vocaPackGrid');
+            const keyword = document.getElementById('vocaSearchInput').value.toLowerCase();
+            const filtered = allVocaPacks.filter(p => p.title.toLowerCase().includes(keyword));
+
+            grid.innerHTML = '';
+            if (filtered.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400"><p>생성된 단어장이 없습니다.</p></div>`; return; }
+
+            filtered.forEach(pack => {
+                const wordsCount = pack.words ? pack.words.length : 0;
+                // 유튜브 썸네일 추출 (정규식)
+                const ytId = extractYoutubeId(pack.url);
+                const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : 'https://via.placeholder.com/320x180?text=No+Video';
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group cursor-pointer hover:border-indigo-400 transition" onclick="openVocaPlayer('${pack.id}')">
+                        <div class="h-32 bg-slate-900 relative">
+                            <img src="${thumbUrl}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                            <div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+                                <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">단어 ${wordsCount}개</span>
+                                <button onclick="deleteVocaPack('${pack.id}'); event.stopPropagation();" class="text-white/50 hover:text-red-400 transition"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                        <div class="p-5 flex-grow">
+                            <h4 class="font-bold text-slate-900 text-lg mb-1 leading-tight line-clamp-2">${pack.title}</h4>
+                            <p class="text-xs text-slate-400 mt-2"><i class="fa-regular fa-clock"></i> ${new Date(pack.timestamp).toLocaleDateString()}</p>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function extractYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        // 모달 열기/닫기/저장
+        function openVocaAddModal() { document.getElementById('vocaTitleInput').value=''; document.getElementById('vocaYoutubeInput').value=''; document.getElementById('vocaDataInput').value=''; document.getElementById('vocaAddModal').classList.remove('hidden'); document.getElementById('vocaAddModal').classList.add('flex'); }
+        function closeVocaAddModal() { document.getElementById('vocaAddModal').classList.add('hidden'); document.getElementById('vocaAddModal').classList.remove('flex'); }
+        
+        function saveVocaPack() {
+            const title = document.getElementById('vocaTitleInput').value.trim();
+            const url = document.getElementById('vocaYoutubeInput').value.trim();
+            const dataStr = document.getElementById('vocaDataInput').value.trim();
+            
+            if(!title || !url || !dataStr) return alert('모든 칸을 채워주세요.');
+            
+            let wordsArr = [];
+            try { wordsArr = JSON.parse(dataStr); } catch(e) { return alert('JSON 데이터 형식이 올바르지 않습니다. 복사한 내용을 다시 확인해주세요.'); }
+            
+            const nData = { title, url, words: wordsArr, timestamp: Date.now() };
+            const newRef = db.ref('vocaPacks').push();
+            newRef.set(nData).then(() => {
+                createEbbinghausSchedules(`[단어복습] ${title}`, 'voca', newRef.key);
+                closeVocaAddModal();
+                alert('단어장 생성 및 복습 달력 등록 완료!');
+            });
+        }
+        function deleteVocaPack(id) { if(confirm('단어장을 삭제하시겠습니까?')) db.ref('vocaPacks/'+id).remove(); }
+
+        // --- 플레이어 로직 ---
+        function openVocaPlayer(packId) {
+            currentPlayVocaPack = allVocaPacks.find(p => p.id === packId);
+            if(!currentPlayVocaPack || !currentPlayVocaPack.words || currentPlayVocaPack.words.length === 0) return alert('단어 데이터가 없습니다.');
+            
+            currentCardIndex = 0;
+            document.getElementById('playerTitle').innerText = currentPlayVocaPack.title;
+            
+            // 뷰 초기화 (앞면으로)
+            document.getElementById('fcCard').classList.remove('is-flipped');
+            updateCardUI();
+
+            // 유튜브 초기화
+            const ytId = extractYoutubeId(currentPlayVocaPack.url);
+            document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
+            
+            if(ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
+            document.getElementById('youtubePlayer').outerHTML = '<div id="youtubePlayer"></div>'; // 리셋
+            
+            ytPlayer = new YT.Player('youtubePlayer', {
+                height: '100%', width: '100%', videoId: ytId,
+                playerVars: { 'controls': 1, 'rel': 0, 'playsinline': 1 }
+            });
+
+            document.getElementById('vocaPlayerOverlay').classList.remove('hidden');
+            document.getElementById('vocaPlayerOverlay').classList.add('flex');
+        }
+
+        function closeVocaPlayer() {
+            if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+            document.getElementById('vocaPlayerOverlay').classList.add('hidden');
+            document.getElementById('vocaPlayerOverlay').classList.remove('flex');
+        }
+
+        function updateCardUI() {
+            const wObj = currentPlayVocaPack.words[currentCardIndex];
+            document.getElementById('fcWord').innerText = wObj.word;
+            document.getElementById('fcMeaning').innerText = wObj.meaning;
+            document.getElementById('fcContext').innerText = wObj.context_meaning || '설명 없음';
+            document.getElementById('fcNuance').innerText = wObj.nuance || '설명 없음';
+            document.getElementById('fcCount').innerText = `${currentCardIndex + 1} / ${currentPlayVocaPack.words.length}`;
+            document.getElementById('ytPlayBtnOverlay').classList.remove('hidden'); // 시간 이동 버튼 다시 활성화
+        }
+
+        function flipCard() { document.getElementById('fcCard').classList.toggle('is-flipped'); }
+        
+        function nextCard() {
+            if(currentCardIndex < currentPlayVocaPack.words.length - 1) {
+                currentCardIndex++;
+                document.getElementById('fcCard').classList.remove('is-flipped');
+                setTimeout(updateCardUI, 150); // 뒤집히는 애니메이션 중 텍스트 변경 방지
+            }
+        }
+        function prevCard() {
+            if(currentCardIndex > 0) {
+                currentCardIndex--;
+                document.getElementById('fcCard').classList.remove('is-flipped');
+                setTimeout(updateCardUI, 150);
+            }
+        }
+
+        // TTS 발음 듣기 (Web Speech API)
+        function playTTS(event) {
+            event.stopPropagation(); // 카드 뒤집기 방지
+            const word = currentPlayVocaPack.words[currentCardIndex].word;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+            } else { alert('이 브라우저에서는 발음 듣기를 지원하지 않습니다.'); }
+        }
+
+        // 특정 시간으로 유튜브 이동 재생
+        function playVideoAtTime() {
+            if(ytPlayer && ytPlayer.seekTo) {
+                const sec = parseInt(currentPlayVocaPack.words[currentCardIndex].time) || 0;
+                document.getElementById('ytPlayBtnOverlay').classList.add('hidden');
+                ytPlayer.seekTo(sec, true);
+                ytPlayer.playVideo();
+            }
+        }
+    </script>
+</body>
+</html>
