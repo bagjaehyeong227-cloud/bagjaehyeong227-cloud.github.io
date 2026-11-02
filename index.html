@@ -100,7 +100,7 @@
                 </div>
             </div>
 
-            <!-- 공부 추가 컨테이너 2종 (개인공부 / 학교공부) -->
+            <!-- 공부 추가 컨테이너 -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- 오늘 해야 할 개인 공부 -->
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
@@ -332,6 +332,39 @@
             <div class="mt-8 flex justify-end gap-3"><button onclick="closeVocaAddModal()" class="px-6 py-3 rounded-xl bg-slate-100 font-bold text-slate-600 hover:bg-slate-200">취소</button><button onclick="saveVocaPack()" class="px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700">생성 및 달력 등록</button></div>
         </div>
     </div>
+    
+    <!-- (새기능) 개별 단어 직접 추가 모달 -->
+    <div id="wordAddModal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-[200] p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 relative">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">새 단어 추가하기</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">단어 / 숙어</label>
+                    <input type="text" id="singleWordInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">기본 뜻</label>
+                    <input type="text" id="singleMeaningInput" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">문맥 의미 (선택)</label>
+                    <input type="text" id="singleContextInput" placeholder="생략 가능" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">뉘앙스/설명 (선택)</label>
+                    <input type="text" id="singleNuanceInput" placeholder="생략 가능" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">영상 시간(초) (선택)</label>
+                    <input type="number" id="singleTimeInput" placeholder="예: 45" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="closeWordAddModal()" class="px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">취소</button>
+                <button onclick="saveSingleWord()" class="px-4 py-2 rounded-lg text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700">추가하기</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 단어장 플레이어 -->
     <div id="vocaPlayerOverlay" class="fixed inset-0 bg-slate-900/95 hidden z-[150] flex-col items-center justify-center p-4 backdrop-blur-lg">
@@ -341,7 +374,10 @@
             
             <div class="w-full max-w-md">
                 <div class="flashcard-scene relative" onclick="flipCard()">
-                    <!-- 새로 추가된 단어 개별 삭제 버튼 -->
+                    <!-- 신규: 단어 추가 버튼 (좌측 상단) -->
+                    <button onclick="openWordAddModal(event)" class="absolute top-4 left-4 w-10 h-10 flex items-center justify-center bg-slate-100/50 hover:bg-indigo-100 text-slate-400 hover:text-indigo-500 rounded-full text-base z-[50] transition shadow-sm backdrop-blur-sm" title="새 단어 직접 추가하기"><i class="fa-solid fa-plus"></i></button>
+                    
+                    <!-- 기존: 단어 개별 삭제 버튼 (우측 상단) -->
                     <button onclick="deleteCurrentWord(event)" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-slate-100/50 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-full text-base z-[50] transition shadow-sm backdrop-blur-sm" title="이 단어 삭제하기"><i class="fa-solid fa-trash-can"></i></button>
                     
                     <div id="fcCard" class="flashcard">
@@ -423,7 +459,7 @@
         }
 
         // ==========================================
-        // 대시보드 & 달력
+        // 대시보드 & 달력 & 학교시간표
         // ==========================================
         function renderTodayDashboard() {
             const todayStr = getYYYYMMDD(realToday); const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -650,12 +686,11 @@
         function deleteNote(id) { if(confirm("완전히 삭제하시겠습니까?")) db.ref('studyNotes/'+id).remove(); }
 
         // ==========================================
-        // 단어장 (폴더 전체 삭제 & 개별 단어 삭제)
+        // 단어장 (삭제 및 새 단어 직접 추가)
         // ==========================================
         let ytPlayer = null; let currentPlayVocaPack = null; let currentCardIndex = 0;
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         
-        // 새로 추가된: 폴더(특정 날짜의 모든 팩) 전체 삭제 기능
         function deleteVocaFolder(e, dateStr) {
             e.stopPropagation();
             if(confirm(dateStr + ' 날짜에 생성된 [모든 단어장]을 삭제하시겠습니까?')) {
@@ -667,31 +702,67 @@
             }
         }
 
-        // 새로 추가된: 플래시카드 화면에서 개별 단어 삭제 기능
+        // 개별 단어 삭제 기능
         function deleteCurrentWord(e) {
             e.stopPropagation();
             if(!confirm('이 단어를 단어장에서 완전히 삭제하시겠습니까?')) return;
-            
             currentPlayVocaPack.words.splice(currentCardIndex, 1);
-            
             if(currentPlayVocaPack.words.length === 0) {
-                // 단어가 모두 삭제되면 해당 팩도 삭제
                 db.ref('vocaPacks/' + currentPlayVocaPack.id).remove();
                 closeVocaPlayer();
                 alert('모든 단어가 삭제되어 단어장 팩이 자동으로 삭제되었습니다.');
             } else {
-                // 남은 단어 DB 업데이트
                 db.ref('vocaPacks/' + currentPlayVocaPack.id + '/words').set(currentPlayVocaPack.words);
-                
-                // 인덱스 조정 (마지막 단어를 삭제했을 경우 처리)
-                if(currentCardIndex >= currentPlayVocaPack.words.length) {
-                    currentCardIndex = currentPlayVocaPack.words.length - 1;
-                }
-                
-                // 화면 리프레시
+                if(currentCardIndex >= currentPlayVocaPack.words.length) currentCardIndex = currentPlayVocaPack.words.length - 1;
                 document.getElementById('fcCard').classList.remove('is-flipped');
                 setTimeout(updateCardUI, 150);
             }
+        }
+
+        // (새 기능) 개별 단어 추가 모달 제어 및 저장 로직
+        function openWordAddModal(e) {
+            if(e) e.stopPropagation();
+            document.getElementById('singleWordInput').value = '';
+            document.getElementById('singleMeaningInput').value = '';
+            document.getElementById('singleContextInput').value = '';
+            document.getElementById('singleNuanceInput').value = '';
+            document.getElementById('singleTimeInput').value = '';
+            document.getElementById('wordAddModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeWordAddModal() {
+            document.getElementById('wordAddModal').classList.replace('flex', 'hidden');
+        }
+
+        function saveSingleWord() {
+            const word = document.getElementById('singleWordInput').value.trim();
+            const meaning = document.getElementById('singleMeaningInput').value.trim();
+            const context = document.getElementById('singleContextInput').value.trim();
+            const nuance = document.getElementById('singleNuanceInput').value.trim();
+            const time = document.getElementById('singleTimeInput').value.trim();
+
+            if(!word || !meaning) return alert("단어와 기본 뜻은 필수 입력 항목입니다.");
+
+            const newWordObj = {
+                word: word,
+                meaning: meaning,
+                context_meaning: context || '설명 없음',
+                nuance: nuance || '설명 없음',
+                time: time ? parseInt(time) : 0
+            };
+
+            if(!currentPlayVocaPack.words) currentPlayVocaPack.words = [];
+            currentPlayVocaPack.words.push(newWordObj);
+
+            // 파이어베이스 DB 업데이트
+            db.ref('vocaPacks/' + currentPlayVocaPack.id + '/words').set(currentPlayVocaPack.words)
+                .then(() => {
+                    currentCardIndex = currentPlayVocaPack.words.length - 1; // 새로 추가된 단어로 인덱스 이동
+                    document.getElementById('fcCard').classList.remove('is-flipped');
+                    updateCardUI(); // 화면 갱신
+                    closeWordAddModal();
+                })
+                .catch(() => alert("단어 추가 중 오류가 발생했습니다."));
         }
 
         function renderVocaPacks() {
@@ -710,72 +781,51 @@
 
             grid.innerHTML = '';
             const sortedDates = Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
-            
             if (sortedDates.length === 0) { grid.innerHTML = '<p class="text-center py-20 text-slate-400 font-bold">조건에 맞는 단어장이 없습니다.</p>'; return; }
 
             sortedDates.forEach(date => {
-                const packs = grouped[date];
-                const fId = 'voca_folder_' + date.replace(/-/g, '');
-                
+                const packs = grouped[date]; const fId = 'voca_folder_' + date.replace(/-/g, '');
                 const folderDiv = document.createElement('div');
                 folderDiv.className = 'bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4';
-                
                 let packsHtml = '';
                 packs.forEach(pack => {
                     const ytId = extractYoutubeId(pack.url);
                     const thumbUrl = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : 'https://via.placeholder.com/320x180?text=No+Video';
                     packsHtml += '<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group cursor-pointer hover:border-indigo-400 hover:shadow-lg transition" onclick="openVocaPlayer(\'' + pack.id + '\')"><div class="h-32 bg-slate-900 relative"><img src="' + thumbUrl + '" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition"><div class="absolute bottom-3 left-3 right-3 flex justify-between items-end"><span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">단어 ' + (pack.words?pack.words.length:0) + '개</span><button onclick="deleteVocaPack(\'' + pack.id + '\'); event.stopPropagation();" class="text-white/50 hover:text-red-400"><i class="fa-solid fa-trash-can"></i></button></div></div><div class="p-4"><h4 class="font-bold text-slate-900 text-base leading-tight line-clamp-2">' + pack.title + '</h4></div></div>';
                 });
-
-                // 폴더 헤더에 폴더 삭제 휴지통 아이콘 추가
                 folderDiv.innerHTML = '<div class="w-full flex justify-between items-center bg-indigo-50/80 px-6 py-5 border-b border-slate-100"><button onclick="toggleFolder(\'' + fId + '\')" class="flex-grow flex items-center gap-2 text-sm font-bold text-indigo-900 text-left hover:text-indigo-700 transition"><i class="fa-solid fa-folder-open text-indigo-500 text-lg"></i> ' + date + ' 생성 단어장 (' + packs.length + '개 팩)</button><div class="flex items-center gap-4"><button onclick="deleteVocaFolder(event, \'' + date + '\')" class="text-red-400 hover:text-red-600 transition px-2 py-1" title="이 폴더의 단어장 전체 삭제"><i class="fa-solid fa-trash-can text-lg"></i></button><i class="fa-solid fa-chevron-down text-indigo-400 transition-transform pointer-events-none" id="icon_' + fId + '"></i></div></div><div id="' + fId + '" class="hidden p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-slate-50/50">' + packsHtml + '</div>';
-                
                 grid.appendChild(folderDiv);
             });
         }
 
         function extractYoutubeId(url) { const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/); return (match && match[2].length === 11) ? match[2] : null; }
-        
         function openVocaAddModal() { document.getElementById('vocaAddModal').classList.replace('hidden', 'flex'); }
         function closeVocaAddModal() { document.getElementById('vocaAddModal').classList.replace('flex', 'hidden'); }
-        
         function saveVocaPack() {
             const title = document.getElementById('vocaTitleInput').value.trim(); const url = document.getElementById('vocaYoutubeInput').value.trim(); const dataStr = document.getElementById('vocaDataInput').value.trim();
             if(!title || !url || !dataStr) return alert('칸을 모두 채워주세요.');
             let wordsArr = []; try { wordsArr = JSON.parse(dataStr); } catch(e) { return alert('JSON 데이터 에러입니다.'); }
-            
             const nData = { title: title, url: url, words: wordsArr, timestamp: Date.now() };
             const newRef = db.ref('vocaPacks').push();
-            newRef.set(nData).then(() => {
-                createEbbinghausSchedules('[단어복습] ' + title, 'voca', newRef.key, getYYYYMMDD(new Date()));
-                closeVocaAddModal(); alert('단어장 생성 및 복습 달력 등록 완료!');
-            });
+            newRef.set(nData).then(() => { createEbbinghausSchedules('[단어복습] ' + title, 'voca', newRef.key, getYYYYMMDD(new Date())); closeVocaAddModal(); alert('단어장 생성 및 복습 달력 등록 완료!'); });
         }
         function deleteVocaPack(id) { if(confirm('단어장을 삭제하시겠습니까?')) db.ref('vocaPacks/'+id).remove(); }
 
-        // 단어장 플레이어
         function openVocaPlayer(packId) {
-            currentPlayVocaPack = allVocaPacks.find(p => p.id === packId); 
-            currentCardIndex = 0;
-            document.getElementById('playerTitle').innerText = currentPlayVocaPack.title; 
-            document.getElementById('fcCard').classList.remove('is-flipped');
+            currentPlayVocaPack = allVocaPacks.find(p => p.id === packId); currentCardIndex = 0;
+            document.getElementById('playerTitle').innerText = currentPlayVocaPack.title; document.getElementById('fcCard').classList.remove('is-flipped');
             updateCardUI(); 
-            
-            const ytId = extractYoutubeId(currentPlayVocaPack.url); 
-            document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
+            const ytId = extractYoutubeId(currentPlayVocaPack.url); document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
             if(ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
             document.getElementById('youtubePlayer').outerHTML = '<div id="youtubePlayer"></div>';
             ytPlayer = new YT.Player('youtubePlayer', { height: '100%', width: '100%', videoId: ytId, playerVars: { 'controls': 1, 'playsinline': 1 } });
             document.getElementById('vocaPlayerOverlay').classList.replace('hidden', 'flex');
         }
 
-        // 카드 UI 업데이트
         function updateCardUI() {
             const wObj = currentPlayVocaPack.words[currentCardIndex];
-            document.getElementById('fcWord').innerText = wObj.word; 
-            document.getElementById('fcMeaning').innerText = wObj.meaning;
-            document.getElementById('fcContext').innerText = wObj.context_meaning || '설명 없음'; 
-            document.getElementById('fcNuance').innerText = wObj.nuance || '설명 없음';
+            document.getElementById('fcWord').innerText = wObj.word; document.getElementById('fcMeaning').innerText = wObj.meaning;
+            document.getElementById('fcContext').innerText = wObj.context_meaning || '설명 없음'; document.getElementById('fcNuance').innerText = wObj.nuance || '설명 없음';
             document.getElementById('fcCount').innerText = (currentCardIndex + 1) + ' / ' + currentPlayVocaPack.words.length;
             document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
         }
@@ -783,21 +833,8 @@
         function closeVocaPlayer() { if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo(); document.getElementById('vocaPlayerOverlay').classList.replace('flex', 'hidden'); }
         function flipCard() { document.getElementById('fcCard').classList.toggle('is-flipped'); }
         function playVideoAtTime() { if(ytPlayer && ytPlayer.seekTo) { document.getElementById('ytPlayBtnOverlay').classList.add('hidden'); ytPlayer.seekTo(parseInt(currentPlayVocaPack.words[currentCardIndex].time)||0, true); ytPlayer.playVideo(); } }
-        
-        function nextCard() { 
-            if(currentCardIndex < currentPlayVocaPack.words.length - 1) { 
-                currentCardIndex++; 
-                document.getElementById('fcCard').classList.remove('is-flipped'); 
-                setTimeout(updateCardUI, 150); 
-            } 
-        }
-        function prevCard() { 
-            if(currentCardIndex > 0) { 
-                currentCardIndex--; 
-                document.getElementById('fcCard').classList.remove('is-flipped'); 
-                setTimeout(updateCardUI, 150); 
-            } 
-        }
+        function nextCard() { if(currentCardIndex < currentPlayVocaPack.words.length - 1) { currentCardIndex++; document.getElementById('fcCard').classList.remove('is-flipped'); setTimeout(updateCardUI, 150); } }
+        function prevCard() { if(currentCardIndex > 0) { currentCardIndex--; document.getElementById('fcCard').classList.remove('is-flipped'); setTimeout(updateCardUI, 150); } }
         function playTTS(e) { e.stopPropagation(); const utterance = new SpeechSynthesisUtterance(currentPlayVocaPack.words[currentCardIndex].word); utterance.lang = 'en-US'; window.speechSynthesis.speak(utterance); }
     </script>
 </body>
