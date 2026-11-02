@@ -476,4 +476,644 @@
                 <div class="flashcard-scene" onclick="flipCard()">
                     <div id="fcCard" class="flashcard">
                         <!-- 앞면 -->
-                        <div class="flashcard-face flashcard
+                        <div class="flashcard-face flashcard-front flex-col gap-4">
+                            <button onclick="playTTS(event)" class="text-slate-400 hover:text-indigo-500 text-3xl transition"><i class="fa-solid fa-volume-high"></i></button>
+                            <h1 id="fcWord" class="text-5xl font-black text-slate-800 tracking-tight">word</h1>
+                            <p class="text-xs font-bold text-slate-400">카드를 탭해서 뜻 확인하기</p>
+                        </div>
+                        <!-- 뒷면 -->
+                        <div class="flashcard-face flashcard-back flex-col p-8 space-y-4 shadow-2xl">
+                            <div>
+                                <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mb-1">기본 뜻</span>
+                                <h3 id="fcMeaning" class="text-3xl font-bold">의미</h3>
+                            </div>
+                            <div class="w-full h-px bg-white/20 my-2"></div>
+                            <div>
+                                <span class="text-[10px] font-bold text-indigo-200">🎬 영상 속 실제 뜻</span>
+                                <p id="fcContext" class="text-sm font-medium mt-1 leading-snug">문맥 의미</p>
+                            </div>
+                            <div class="bg-black/20 p-3 rounded-lg w-full">
+                                <span class="text-[10px] font-bold text-yellow-300"><i class="fa-solid fa-lightbulb"></i> 뉘앙스 & 쓰임새</span>
+                                <p id="fcNuance" class="text-xs text-indigo-100 mt-1 leading-relaxed">뉘앙스 설명</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 카드 컨트롤 -->
+                <div class="flex justify-between items-center mt-6">
+                    <button onclick="prevCard()" class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition backdrop-blur"><i class="fa-solid fa-arrow-left"></i></button>
+                    <span id="fcCount" class="text-white font-bold text-sm font-mono tracking-widest">1 / 10</span>
+                    <button onclick="nextCard()" class="w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition backdrop-blur"><i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- 유튜브 영상 영역 -->
+            <div class="w-full max-w-xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 relative group">
+                <div id="youtubePlayer"></div>
+                <div id="ytPlayBtnOverlay" onclick="playVideoAtTime()" class="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-100 group-hover:bg-black/20 transition-all z-10">
+                    <div class="bg-red-600 text-white w-20 h-16 rounded-2xl flex items-center justify-center shadow-2xl transition transform group-hover:scale-110">
+                        <i class="fa-solid fa-play text-2xl"></i>
+                    </div>
+                    <p class="absolute bottom-4 text-white text-xs font-bold drop-shadow-md">클릭하면 이 단어가 나오는 부분부터 재생됩니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크립트 모음 -->
+    <script>
+        // ==========================================
+        // 1. 글로벌 설정 & DB 연동
+        // ==========================================
+        const ENTRY_PASSWORD = "zkssk201007@";
+        const IMGBB_API_KEY = "49e7b165c8c6e4a47bb36311f045e9c8";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdhay9Ad7QKzWu5HdAjB0Cmsl851QW6TY",
+            authDomain: "digital-diet-d874d.firebaseapp.com",
+            databaseURL: "https://digital-diet-d874d-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "digital-diet-d874d",
+            messagingSenderId: "245839108604",
+            appId: "1:245839108604:web:70ae15be8b599e71467a79"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let allNotes = [];
+        let allSchedules = [];
+        let allVocaPacks = [];
+        
+        // 새로 추가된 시간표 데이터 저장용 변수
+        let myTimetable = { 1:[], 2:[], 3:[], 4:[], 5:[] }; // 1:월, 2:화, 3:수...
+
+        let currentDate = new Date(); // 달력 표시용 (월별 이동)
+        let realToday = new Date();   // 실제 오늘 날짜
+
+        // DB 리스너 4종 (Notes, Schedules, VocaPacks, Timetable)
+        db.ref('studyNotes').on('value', (snapshot) => {
+            allNotes = [];
+            const data = snapshot.val();
+            if (data) { for (let key in data) allNotes.push({ id: key, ...data[key] }); }
+            allNotes.sort((a, b) => b.timestamp - a.timestamp);
+            if(document.getElementById('sectionNotes').classList.contains('flex')) renderNotes();
+        });
+
+        db.ref('schedules').on('value', (snapshot) => {
+            allSchedules = [];
+            const data = snapshot.val();
+            if (data) { for (let key in data) allSchedules.push({ id: key, ...data[key] }); }
+            renderCalendar();
+            renderTodayDashboard();
+        });
+
+        db.ref('vocaPacks').on('value', (snapshot) => {
+            allVocaPacks = [];
+            const data = snapshot.val();
+            if (data) { for (let key in data) allVocaPacks.push({ id: key, ...data[key] }); }
+            allVocaPacks.sort((a, b) => b.timestamp - a.timestamp);
+            if(document.getElementById('sectionVoca').classList.contains('block')) renderVocaPacks();
+        });
+
+        // 새롭게 추가된 일주일 시간표 DB 리스너
+        db.ref('timetable').on('value', (snapshot) => {
+            if (snapshot.val()) myTimetable = snapshot.val();
+            renderTodayTimetable();
+        });
+
+        // ==========================================
+        // 2. 공통 UI 제어
+        // ==========================================
+        function checkEntryPassword() {
+            const inputVal = document.getElementById('accessPasswordInput').value;
+            if (inputVal === ENTRY_PASSWORD) {
+                const overlay = document.getElementById('authOverlay');
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.style.display = 'none'; renderCalendar(); renderTodayDashboard(); renderTodayTimetable(); }, 300);
+            } else {
+                document.getElementById('authErrorMsg').classList.remove('hidden');
+                document.getElementById('accessPasswordInput').value = '';
+            }
+        }
+
+        function switchMainTab(tabName) {
+            ['Dashboard', 'Notes', 'Voca', 'Campaign'].forEach(name => {
+                const sec = document.getElementById('section' + name);
+                const btn = document.getElementById('mainTab' + name);
+                if (name.toLowerCase() === tabName.toLowerCase()) {
+                    sec.classList.remove('hidden'); sec.classList.add(name==='Notes'?'flex':'block');
+                    if(btn) { btn.classList.add('border-indigo-600', 'text-indigo-600'); btn.classList.remove('border-transparent', 'text-slate-400'); }
+                    if(tabName==='notes') renderNotes();
+                    if(tabName==='voca') renderVocaPacks();
+                    if(tabName==='dashboard') { renderCalendar(); renderTodayDashboard(); renderTodayTimetable(); }
+                } else {
+                    sec.classList.remove('block', 'flex', 'flex-col'); sec.classList.add('hidden');
+                    if(btn) { btn.classList.remove('border-indigo-600', 'text-indigo-600'); btn.classList.add('border-transparent', 'text-slate-400'); }
+                }
+            });
+        }
+
+        // ==========================================
+        // 3. 오늘의 대시보드, 스마트 캘린더 & 학교 당일 복습
+        // ==========================================
+        function renderTodayDashboard() {
+            const todayStr = getYYYYMMDD(realToday);
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('dashboardDateTitle').innerText = `오늘, ${realToday.getMonth()+1}월 ${realToday.getDate()}일 (${days[realToday.getDay()]})`;
+
+            const todaysList = allSchedules.filter(s => s.date === todayStr);
+            const normCount = todaysList.filter(s => s.type === 'normal').length;
+            const revCount = todaysList.filter(s => s.type === 'review').length;
+            const schoolCount = todaysList.filter(s => s.type === 'school_review').length; // 새롭게 추가된 집계
+            
+            document.getElementById('todayTaskCount').innerText = normCount;
+            document.getElementById('todayReviewCount').innerText = revCount;
+            document.getElementById('todaySchoolReviewCount').innerText = schoolCount; // 헤더 뱃지 업데이트
+
+            renderDayDetail(todayStr);
+        }
+
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            document.getElementById('calMonthDisplay').innerText = `${year}. ${String(month+1).padStart(2,'0')}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+
+            for (let i = 0; i < firstDay; i++) { grid.appendChild(document.createElement('div')); }
+
+            const todayStr = getYYYYMMDD(realToday);
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = getYYYYMMDD(new Date(year, month, i));
+                const daySchedules = allSchedules.filter(s => s.date === dateStr);
+                
+                const normCount = daySchedules.filter(s=>s.type==='normal').length;
+                const revCount = daySchedules.filter(s=>s.type==='review').length;
+                const schoolCount = daySchedules.filter(s=>s.type==='school_review').length; // 학교 복습 캘린더 점
+
+                let dotHtml = '';
+                if(normCount > 0) dotHtml += `<span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block mx-[1px]"></span>`;
+                if(schoolCount > 0) dotHtml += `<span class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block mx-[1px]"></span>`; // 학교복습은 파란점
+                if(revCount > 0) dotHtml += `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mx-[1px]"></span>`;
+
+                const isTodayClass = (dateStr === todayStr) ? 'today' : '';
+                
+                const cell = document.createElement('div');
+                cell.className = `cal-day ${isTodayClass}`;
+                cell.onclick = () => renderDayDetail(dateStr);
+                cell.innerHTML = `
+                    <span class="cal-day-num">${i}</span>
+                    <div class="mt-auto flex justify-center pb-1 h-3">${dotHtml}</div>
+                `;
+                grid.appendChild(cell);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function renderDayDetail(dateStr) {
+            const y = dateStr.split('-')[0], m = dateStr.split('-')[1], d = dateStr.split('-')[2];
+            document.getElementById('selectedDateTitle').innerText = `${m}월 ${d}일 일정`;
+            
+            const list = allSchedules.filter(s => s.date === dateStr);
+            const nList = list.filter(s => s.type === 'normal');
+            const rList = list.filter(s => s.type === 'review');
+            const sList = list.filter(s => s.type === 'school_review'); // 학교 당일 복습 리스트
+
+            // 1. 일반 일정
+            const nContainer = document.getElementById('normalScheduleList');
+            nContainer.innerHTML = nList.length===0 ? '<p class="text-[11px] text-slate-400 italic">일정이 없습니다.</p>' : '';
+            nList.forEach(item => {
+                nContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-100">
+                        <span class="text-sm font-medium text-slate-700">${item.text}</span>
+                        <button onclick="deleteSchedule('${item.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+                    </div>`;
+            });
+
+            // 2. 학교 당일 복습 일정 (새로 추가)
+            const sContainer = document.getElementById('schoolScheduleList');
+            sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
+            sList.forEach(item => {
+                sContainer.innerHTML += `
+                    <div class="flex justify-between items-center bg-blue-50/50 p-2.5 rounded-lg border border-blue-100 shadow-sm mb-2">
+                        <span class="text-sm font-bold text-blue-900"><i class="fa-solid fa-check-circle text-blue-400 mr-1.5"></i> ${item.text}</span>
+                        <button onclick="deleteSchedule('${item.id}')" class="text-blue-300 hover:text-blue-500"><i class="fa-solid fa-xmark"></i></button>
+                    </div>`;
+            });
+
+            // 3. 에빙하우스 복습
+            const rContainer = document.getElementById('reviewScheduleList');
+            rContainer.innerHTML = rList.length===0 ? '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>' : '';
+            rList.forEach(item => {
+                let badge = 'bg-emerald-100 text-emerald-700';
+                let icon = '<i class="fa-solid fa-pen text-[10px]"></i>';
+                let actionAttr = '';
+                
+                if(item.sourceType === 'voca') {
+                    badge = 'bg-indigo-100 text-indigo-700';
+                    icon = '<i class="fa-solid fa-layer-group text-[10px]"></i>';
+                    actionAttr = `onclick="switchMainTab('voca'); setTimeout(()=>openVocaPlayer('${item.sourceId}'), 300)" class="cursor-pointer hover:shadow-md transition"`;
+                }
+
+                rContainer.innerHTML += `
+                    <div ${actionAttr} class="flex flex-col bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative mb-2">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="${badge} px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">${icon} ${item.cycleText}</span>
+                            <button onclick="deleteSchedule('${item.id}'); event.stopPropagation();" class="absolute top-2 right-2 text-slate-300 hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <span class="text-sm font-bold text-slate-800">${item.text}</span>
+                    </div>`;
+            });
+        }
+
+        // ==========================================
+        // 3.5 [새로운 기능] 학교 일주일 시간표 관리
+        // ==========================================
+        
+        function renderTodayTimetable() {
+            const dayOfWeek = realToday.getDay(); // 0:일요일 ~ 6:토요일
+            const todaySubjects = myTimetable[dayOfWeek] || [];
+            const container = document.getElementById('todayTimetableDisplay');
+            
+            const daysArr = ['일', '월', '화', '수', '목', '금', '토'];
+            document.getElementById('todayTimetableLabel').innerText = `오늘 (${daysArr[dayOfWeek]}요일) 시간표`;
+
+            if (todaySubjects.length === 0) {
+                container.innerHTML = '<span class="text-xs text-slate-400">설정된 학교 시간표가 없거나 주말입니다.</span>';
+                return;
+            }
+
+            // 오늘 배울/배운 과목들을 예쁜 뱃지로 화면에 출력
+            container.innerHTML = todaySubjects.map((sub, idx) => 
+                `<span class="bg-white text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                    <span class="text-blue-400 mr-1">${idx+1}교시</span> ${sub}
+                </span>`
+            ).join('');
+        }
+
+        function openTimetableModal() {
+            // 모달 열 때 기존 DB의 내용을 텍스트 박스에 채워줌
+            document.getElementById('ttMon').value = (myTimetable[1]||[]).join(', ');
+            document.getElementById('ttTue').value = (myTimetable[2]||[]).join(', ');
+            document.getElementById('ttWed').value = (myTimetable[3]||[]).join(', ');
+            document.getElementById('ttThu').value = (myTimetable[4]||[]).join(', ');
+            document.getElementById('ttFri').value = (myTimetable[5]||[]).join(', ');
+            document.getElementById('timetableModal').classList.remove('hidden');
+            document.getElementById('timetableModal').classList.add('flex');
+        }
+
+        function closeTimetableModal() {
+            document.getElementById('timetableModal').classList.add('hidden');
+            document.getElementById('timetableModal').classList.remove('flex');
+        }
+
+        function saveTimetable() {
+            // 쉼표로 분리 후 앞뒤 공백 제거, 빈 문자열 제외
+            const parse = (val) => val.split(',').map(s=>s.trim()).filter(s=>s);
+            const updated = {
+                1: parse(document.getElementById('ttMon').value),
+                2: parse(document.getElementById('ttTue').value),
+                3: parse(document.getElementById('ttWed').value),
+                4: parse(document.getElementById('ttThu').value),
+                5: parse(document.getElementById('ttFri').value)
+            };
+            
+            db.ref('timetable').set(updated).then(() => {
+                closeTimetableModal();
+            });
+        }
+
+        function addTodaySchoolReview() {
+            const dayOfWeek = realToday.getDay();
+            const todaySubjects = myTimetable[dayOfWeek] || [];
+            if(todaySubjects.length === 0) return alert('오늘 요일에 해당하는 시간표가 없습니다.');
+            
+            const todayStr = getYYYYMMDD(realToday);
+            
+            let addedCount = 0;
+            // 오늘 과목 수만큼 스케줄(당일치기 복습용)을 추가
+            todaySubjects.forEach((sub, idx) => {
+                db.ref('schedules').push({
+                    date: todayStr,
+                    text: `${idx+1}교시: ${sub}`,
+                    type: 'school_review', // 일반/복습과 구분되는 새로운 타입
+                    timestamp: Date.now()
+                });
+                addedCount++;
+            });
+            
+            alert(`오늘 달력에 ${addedCount}개의 당일 학교 공부 복습 일정이 즉시 추가되었습니다!`);
+        }
+
+        // ==========================================
+        // 스케줄 공통
+        // ==========================================
+        function openScheduleModal() { document.getElementById('schDateInput').value = getYYYYMMDD(realToday); document.getElementById('schTextInput').value = ''; document.getElementById('scheduleModal').classList.remove('hidden'); document.getElementById('scheduleModal').classList.add('flex'); }
+        function closeScheduleModal() { document.getElementById('scheduleModal').classList.add('hidden'); document.getElementById('scheduleModal').classList.remove('flex'); }
+        function saveSchedule() {
+            const date = document.getElementById('schDateInput').value;
+            const text = document.getElementById('schTextInput').value.trim();
+            if(!date || !text) return alert('입력해주세요.');
+            db.ref('schedules').push({ date, text, type: 'normal', timestamp: Date.now() });
+            closeScheduleModal();
+        }
+        function deleteSchedule(id) { if(confirm('일정을 삭제하시겠습니까?')) db.ref('schedules/'+id).remove(); }
+
+        // 유틸: 날짜 포맷 (YYYY-MM-DD)
+        function getYYYYMMDD(dObj) { return `${dObj.getFullYear()}-${String(dObj.getMonth()+1).padStart(2,'0')}-${String(dObj.getDate()).padStart(2,'0')}`; }
+
+        // 망각 곡선 스케줄 자동 생성 함수 (유지됨 - 학교 공부에는 안 쓰임)
+        function createEbbinghausSchedules(baseText, sourceType, sourceId) {
+            const cycles = [ {days: 1, name: '1일 뒤 복습'}, {days: 3, name: '3일 뒤 복습'}, {days: 7, name: '7일 뒤 복습'}, {days: 30, name: '한 달 뒤 복습'} ];
+            cycles.forEach(c => {
+                let targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + c.days);
+                db.ref('schedules').push({
+                    date: getYYYYMMDD(targetDate), text: baseText, type: 'review', cycleText: c.name,
+                    sourceType: sourceType, sourceId: sourceId, timestamp: Date.now()
+                });
+            });
+        }
+
+        // ==========================================
+        // 4. AI 스마트 오답노트 (로직 유지)
+        // ==========================================
+        let currentNoteType = '일반';
+        let currentNoteSub = '전체';
+        let currentNoteImg = null;
+
+        function setNoteType(type) {
+            currentNoteType = type;
+            document.getElementById('btnTypeNormal').className = type==='일반' ? "flex-1 md:flex-none px-6 py-1.5 rounded-full bg-white shadow text-indigo-600 font-bold transition" : "flex-1 md:flex-none px-6 py-1.5 rounded-full text-slate-500 hover:text-slate-800 transition";
+            document.getElementById('btnTypeMock').className = type==='모의고사' ? "flex-1 md:flex-none px-6 py-1.5 rounded-full bg-white shadow text-indigo-600 font-bold transition" : "flex-1 md:flex-none px-6 py-1.5 rounded-full text-slate-500 hover:text-slate-800 transition";
+            renderNotes();
+        }
+        function setNoteSubject(sub) {
+            currentNoteSub = sub;
+            document.querySelectorAll('.note-sub-btn').forEach(btn => {
+                btn.className = btn.dataset.sub===sub ? "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md transition" : "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition";
+            });
+            renderNotes();
+        }
+
+        function renderNotes() {
+            const grid = document.getElementById('notesGrid');
+            const keyword = document.getElementById('noteSearchInput').value.toLowerCase();
+            const filtered = allNotes.filter(n => {
+                const matchType = (n.noteType || '일반') === currentNoteType;
+                const matchSub = currentNoteSub === '전체' || n.subject === currentNoteSub;
+                const matchKw = (n.book||'').toLowerCase().includes(keyword) || (n.num||'').toLowerCase().includes(keyword) || (n.keyword||'').toLowerCase().includes(keyword);
+                return matchType && matchSub && matchKw;
+            });
+
+            grid.innerHTML = '';
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-24 text-slate-400"><i class="fa-solid fa-ghost text-4xl mb-4 opacity-50"></i><p>등록된 오답노트가 없습니다.</p></div>`;
+                return;
+            }
+
+            filtered.forEach(note => {
+                const dateStr = new Date(note.timestamp).toLocaleDateString();
+                const imgArea = note.imageUrl ? `<div class="post-it-img-area"><img src="${note.imageUrl}" onclick="zoomImage('${note.imageUrl}')"></div>` : `<div class="post-it-img-area bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-image text-slate-300 text-4xl"></i></div>`;
+                
+                const card = document.createElement('div');
+                card.className = `post-it rounded-2xl border border-slate-200 shadow-sm bg-white h-full relative group`;
+                card.innerHTML = `
+                    ${imgArea}
+                    <div class="p-5 flex flex-col flex-grow">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex gap-1.5 flex-wrap">
+                                <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">${note.subject}</span>
+                                <span class="text-[10px] text-slate-500 px-1 border border-slate-200 rounded">${note.difficulty||'⭐⭐⭐'}</span>
+                            </div>
+                            <button onclick="deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                        <h4 class="font-extrabold text-slate-800 text-base leading-tight mb-1 truncate">${note.book}</h4>
+                        <p class="text-xs font-bold text-indigo-500 mb-3">${note.num}</p>
+                        
+                        <div class="flex-grow space-y-3">
+                            <div>
+                                <p class="text-[10px] font-bold text-rose-500 mb-0.5"><i class="fa-solid fa-user-pen"></i> 내가 몰랐던 것</p>
+                                <p class="text-xs text-slate-600 line-clamp-3 leading-relaxed">${note.myNote}</p>
+                            </div>
+                            <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                <p class="text-[10px] font-bold text-emerald-600 mb-0.5"><i class="fa-solid fa-robot"></i> 핵심 해설</p>
+                                <p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">${note.aiNote}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
+                            <span class="truncate pr-2"><i class="fa-solid fa-hashtag"></i> ${note.keyword||'키워드 없음'}</span>
+                            <span class="whitespace-nowrap">${dateStr}</span>
+                        </div>
+                    </div>`;
+                grid.appendChild(card);
+            });
+        }
+
+        function openNoteModal() {
+            document.getElementById('noteId').value = ''; document.getElementById('existingImageUrl').value = '';
+            document.getElementById('bookInput').value = ''; document.getElementById('numInput').value = '';
+            document.getElementById('keywordInput').value = ''; document.getElementById('myNoteInput').value = ''; document.getElementById('aiNoteInput').value = '';
+            removeImage(); document.getElementById('noteModal').classList.remove('hidden'); document.getElementById('noteModal').classList.add('flex');
+        }
+        function closeNoteModal() { document.getElementById('noteModal').classList.add('hidden'); document.getElementById('noteModal').classList.remove('flex'); }
+        function previewImage(e) {
+            const file = e.target.files[0];
+            if(file) { currentNoteImg=file; document.getElementById('fileNameDisplay').innerText=file.name;
+            const r = new FileReader(); r.onload=ev=>{ document.getElementById('imagePreview').src=ev.target.result; document.getElementById('imagePreviewContainer').classList.remove('hidden'); }; r.readAsDataURL(file); }
+        }
+        function removeImage() { currentNoteImg=null; document.getElementById('imageInput').value=''; document.getElementById('fileNameDisplay').innerText='선택된 파일 없음'; document.getElementById('imagePreviewContainer').classList.add('hidden'); document.getElementById('existingImageUrl').value=''; }
+        function zoomImage(url) { document.getElementById('zoomedImage').src = url; document.getElementById('imageZoomModal').classList.replace('hidden', 'flex'); }
+
+        async function saveNote() {
+            const nType = document.querySelector('input[name="noteTypeInput"]:checked').value;
+            const sub = document.getElementById('subjectInput').value;
+            const diff = document.getElementById('difficultyInput').value;
+            const book = document.getElementById('bookInput').value.trim();
+            const num = document.getElementById('numInput').value.trim();
+            const kw = document.getElementById('keywordInput').value.trim();
+            const myN = document.getElementById('myNoteInput').value.trim();
+            const aiN = document.getElementById('aiNoteInput').value.trim();
+            let imgUrl = document.getElementById('existingImageUrl').value;
+            
+            if(!book||!num||!myN) return alert("필수 항목(출처, 번호, 나의 오개념)을 입력해주세요.");
+            
+            const btn = document.getElementById('saveBtn'); btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> 저장중...'; btn.disabled=true;
+            try {
+                if(currentNoteImg) {
+                    const fd = new FormData(); fd.append('image', currentNoteImg);
+                    const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method:'POST', body:fd });
+                    const data = await res.json();
+                    if(data.success) imgUrl = data.data.url; else throw new Error("업로드 실패");
+                }
+                const nData = { noteType: nType, subject:sub, difficulty:diff, book:book, num:num, keyword:kw, myNote:myN, aiNote:aiN, imageUrl:imgUrl||null, timestamp: Date.now() };
+                
+                const newRef = await db.ref('studyNotes').push(nData);
+                createEbbinghausSchedules(`[오답복습] ${book} - ${num}`, 'note', newRef.key);
+
+                closeNoteModal();
+            } catch(e) { alert("저장 오류!"); } finally { btn.innerHTML='<i class="fa-solid fa-check"></i> 저장 & 복습달력 등록'; btn.disabled=false; }
+        }
+        function deleteNote(id) { if(confirm("이 오답노트를 완전히 삭제하시겠습니까?")) db.ref('studyNotes/'+id).remove(); }
+
+        // ==========================================
+        // 5. 유튜브 영단어장 (로직 유지)
+        // ==========================================
+        let currentPlayVocaPack = null;
+        let currentCardIndex = 0;
+        let ytPlayer = null;
+        
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        
+        function onYouTubeIframeAPIReady() { /* 대기용 */ }
+
+        function renderVocaPacks() {
+            const grid = document.getElementById('vocaPackGrid');
+            const keyword = document.getElementById('vocaSearchInput').value.toLowerCase();
+            const filtered = allVocaPacks.filter(p => p.title.toLowerCase().includes(keyword));
+
+            grid.innerHTML = '';
+            if (filtered.length === 0) { grid.innerHTML = `<div class="col-span-full text-center py-20 text-slate-400"><p>생성된 단어장이 없습니다.</p></div>`; return; }
+
+            filtered.forEach(pack => {
+                const wordsCount = pack.words ? pack.words.length : 0;
+                const ytId = extractYoutubeId(pack.url);
+                const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : 'https://via.placeholder.com/320x180?text=No+Video';
+
+                grid.innerHTML += `
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col group cursor-pointer hover:border-indigo-400 transition" onclick="openVocaPlayer('${pack.id}')">
+                        <div class="h-32 bg-slate-900 relative">
+                            <img src="${thumbUrl}" class="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                            <div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+                                <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">단어 ${wordsCount}개</span>
+                                <button onclick="deleteVocaPack('${pack.id}'); event.stopPropagation();" class="text-white/50 hover:text-red-400 transition"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </div>
+                        <div class="p-5 flex-grow">
+                            <h4 class="font-bold text-slate-900 text-lg mb-1 leading-tight line-clamp-2">${pack.title}</h4>
+                            <p class="text-xs text-slate-400 mt-2"><i class="fa-regular fa-clock"></i> ${new Date(pack.timestamp).toLocaleDateString()}</p>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function extractYoutubeId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function openVocaAddModal() { document.getElementById('vocaTitleInput').value=''; document.getElementById('vocaYoutubeInput').value=''; document.getElementById('vocaDataInput').value=''; document.getElementById('vocaAddModal').classList.remove('hidden'); document.getElementById('vocaAddModal').classList.add('flex'); }
+        function closeVocaAddModal() { document.getElementById('vocaAddModal').classList.add('hidden'); document.getElementById('vocaAddModal').classList.remove('flex'); }
+        
+        function saveVocaPack() {
+            const title = document.getElementById('vocaTitleInput').value.trim();
+            const url = document.getElementById('vocaYoutubeInput').value.trim();
+            const dataStr = document.getElementById('vocaDataInput').value.trim();
+            
+            if(!title || !url || !dataStr) return alert('모든 칸을 채워주세요.');
+            
+            let wordsArr = [];
+            try { wordsArr = JSON.parse(dataStr); } catch(e) { return alert('JSON 데이터 형식이 올바르지 않습니다. 복사한 내용을 다시 확인해주세요.'); }
+            
+            const nData = { title, url, words: wordsArr, timestamp: Date.now() };
+            const newRef = db.ref('vocaPacks').push();
+            newRef.set(nData).then(() => {
+                createEbbinghausSchedules(`[단어복습] ${title}`, 'voca', newRef.key);
+                closeVocaAddModal();
+                alert('단어장 생성 및 복습 달력 등록 완료!');
+            });
+        }
+        function deleteVocaPack(id) { if(confirm('단어장을 삭제하시겠습니까?')) db.ref('vocaPacks/'+id).remove(); }
+
+        function openVocaPlayer(packId) {
+            currentPlayVocaPack = allVocaPacks.find(p => p.id === packId);
+            if(!currentPlayVocaPack || !currentPlayVocaPack.words || currentPlayVocaPack.words.length === 0) return alert('단어 데이터가 없습니다.');
+            
+            currentCardIndex = 0;
+            document.getElementById('playerTitle').innerText = currentPlayVocaPack.title;
+            
+            document.getElementById('fcCard').classList.remove('is-flipped');
+            updateCardUI();
+
+            const ytId = extractYoutubeId(currentPlayVocaPack.url);
+            document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
+            
+            if(ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
+            document.getElementById('youtubePlayer').outerHTML = '<div id="youtubePlayer"></div>';
+            
+            ytPlayer = new YT.Player('youtubePlayer', {
+                height: '100%', width: '100%', videoId: ytId,
+                playerVars: { 'controls': 1, 'rel': 0, 'playsinline': 1 }
+            });
+
+            document.getElementById('vocaPlayerOverlay').classList.remove('hidden');
+            document.getElementById('vocaPlayerOverlay').classList.add('flex');
+        }
+
+        function closeVocaPlayer() {
+            if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+            document.getElementById('vocaPlayerOverlay').classList.add('hidden');
+            document.getElementById('vocaPlayerOverlay').classList.remove('flex');
+        }
+
+        function updateCardUI() {
+            const wObj = currentPlayVocaPack.words[currentCardIndex];
+            document.getElementById('fcWord').innerText = wObj.word;
+            document.getElementById('fcMeaning').innerText = wObj.meaning;
+            document.getElementById('fcContext').innerText = wObj.context_meaning || '설명 없음';
+            document.getElementById('fcNuance').innerText = wObj.nuance || '설명 없음';
+            document.getElementById('fcCount').innerText = `${currentCardIndex + 1} / ${currentPlayVocaPack.words.length}`;
+            document.getElementById('ytPlayBtnOverlay').classList.remove('hidden');
+        }
+
+        function flipCard() { document.getElementById('fcCard').classList.toggle('is-flipped'); }
+        
+        function nextCard() {
+            if(currentCardIndex < currentPlayVocaPack.words.length - 1) {
+                currentCardIndex++;
+                document.getElementById('fcCard').classList.remove('is-flipped');
+                setTimeout(updateCardUI, 150);
+            }
+        }
+        function prevCard() {
+            if(currentCardIndex > 0) {
+                currentCardIndex--;
+                document.getElementById('fcCard').classList.remove('is-flipped');
+                setTimeout(updateCardUI, 150);
+            }
+        }
+
+        function playTTS(event) {
+            event.stopPropagation();
+            const word = currentPlayVocaPack.words[currentCardIndex].word;
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+            } else { alert('이 브라우저에서는 발음 듣기를 지원하지 않습니다.'); }
+        }
+
+        function playVideoAtTime() {
+            if(ytPlayer && ytPlayer.seekTo) {
+                const sec = parseInt(currentPlayVocaPack.words[currentCardIndex].time) || 0;
+                document.getElementById('ytPlayBtnOverlay').classList.add('hidden');
+                ytPlayer.seekTo(sec, true);
+                ytPlayer.playVideo();
+            }
+        }
+    </script>
+</body>
+</html>
