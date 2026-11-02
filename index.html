@@ -36,7 +36,7 @@
         .flashcard-front { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #e2e8f0; z-index: 2; }
         .flashcard-back { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; transform: rotateY(180deg); align-items: flex-start; text-align: left; }
         
-        .cal-day { aspect-ratio: 1; border-radius: 0.5rem; border: 1px solid #f1f5f9; padding: 0.25rem; display: flex; flex-direction: column; cursor: pointer; transition: background 0.2s; background: white; }
+        .cal-day { aspect-ratio: 1; border-radius: 0.5rem; border: 1px solid #f1f5f9; padding: 0.25rem; display: flex; flex-direction: column; cursor: pointer; transition: background 0.2s; background: white; overflow: hidden; }
         .cal-day:hover { background: #f8fafc; }
         .cal-day.today { border: 2px solid #4f46e5; background: #eef2ff; }
         .cal-day-num { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 2px; }
@@ -495,19 +495,26 @@
             for (let i = 1; i <= daysInMonth; i++) {
                 const dateStr = getYYYYMMDD(new Date(year, month, i));
                 const daySchedules = allSchedules.filter(s => s.date === dateStr);
-                const normCount = daySchedules.filter(s=>s.type==='normal' || s.type==='personal_study').length;
-                const revCount = daySchedules.filter(s=>s.type==='review').length;
-                const schoolCount = daySchedules.filter(s=>s.type==='school_review').length;
-
-                let dotHtml = '';
-                if(normCount > 0) dotHtml += '<span class="w-1.5 h-1.5 rounded-full bg-slate-400 inline-block mx-[1px]"></span>';
-                if(schoolCount > 0) dotHtml += '<span class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block mx-[1px]"></span>';
-                if(revCount > 0) dotHtml += '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block mx-[1px]"></span>';
+                
+                // 달력 내 작은 텍스트 추가 렌더링
+                let tasksHtml = '<div class="flex flex-col gap-[2px] mt-1 overflow-y-auto hide-scroll w-full flex-grow">';
+                daySchedules.slice(0, 3).forEach(s => {
+                    let bgClass = 'bg-slate-100 text-slate-600';
+                    if(s.type === 'school_review') bgClass = 'bg-blue-100 text-blue-700';
+                    if(s.type === 'review') bgClass = 'bg-emerald-100 text-emerald-700';
+                    if(s.type === 'personal_study') bgClass = 'bg-indigo-100 text-indigo-700';
+                    
+                    tasksHtml += `<div class="text-[9px] font-medium leading-tight truncate px-1 py-[2px] rounded ${bgClass}">${s.text}</div>`;
+                });
+                if(daySchedules.length > 3) {
+                    tasksHtml += `<div class="text-[8px] font-bold text-slate-400 text-center mt-[1px]">+${daySchedules.length - 3}개</div>`;
+                }
+                tasksHtml += '</div>';
 
                 const cell = document.createElement('div');
                 cell.className = 'cal-day ' + (dateStr === todayStr ? 'today' : '');
                 cell.onclick = () => renderDayDetail(dateStr);
-                cell.innerHTML = '<span class="cal-day-num">' + i + '</span><div class="mt-auto flex justify-center pb-1 h-3">' + dotHtml + '</div>';
+                cell.innerHTML = '<span class="cal-day-num">' + i + '</span>' + tasksHtml;
                 grid.appendChild(cell);
             }
         }
@@ -560,7 +567,7 @@
             sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
             sList.forEach(item => { sContainer.innerHTML += '<div class="flex justify-between items-center bg-blue-50 p-2.5 rounded-lg border border-blue-100 shadow-sm mb-2"><span class="text-sm font-bold text-blue-900"><i class="fa-solid fa-check-circle text-blue-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-blue-300 hover:text-blue-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 자동 복습 목록 렌더링 (삭제 버튼 추가)
+            // 자동 복습 목록 렌더링
             const rContainer = document.getElementById('reviewScheduleList');
             if(rList.length === 0) { rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; } else {
                 const grouped = {};
@@ -667,8 +674,13 @@
             const checkboxes = document.querySelectorAll('.tt-checkbox:checked');
             if(checkboxes.length === 0) return alert('선택된 과목이 없습니다.');
             const todayStr = getYYYYMMDD(realToday);
-            checkboxes.forEach(cb => { db.ref('schedules').push({ date: todayStr, text: cb.value, type: 'school_review', timestamp: Date.now() }); });
-            alert('선택한 ' + checkboxes.length + '개 과목이 달력 당일 복습에 추가되었습니다!');
+            checkboxes.forEach(cb => { 
+                const ref = db.ref('schedules').push();
+                ref.set({ date: todayStr, text: cb.value, type: 'school_review', timestamp: Date.now() }).then(() => {
+                    createEbbinghausSchedules('[학교복습] ' + cb.value, 'school', ref.key, todayStr);
+                });
+            });
+            alert('선택한 ' + checkboxes.length + '개 과목이 당일 및 복습 달력에 추가되었습니다!');
         }
 
         function openTimetableModal() {
@@ -690,7 +702,14 @@
             if(!date || !text) return alert('입력해주세요.');
             db.ref('schedules').push({ date: date, text: text, type: 'normal', completed: false, timestamp: Date.now() }); closeScheduleModal();
         }
-        function deleteSchedule(id) { if(confirm('일정을 삭제하시겠습니까?')) db.ref('schedules/'+id).remove(); }
+        function deleteSchedule(id) { 
+            if(confirm('일정을 삭제하시겠습니까? (연관된 자동 복습 일정도 모두 삭제됩니다)')) {
+                db.ref('schedules/'+id).remove(); 
+                allSchedules.forEach(s => {
+                    if (s.sourceId === id) db.ref('schedules/'+s.id).remove();
+                });
+            } 
+        }
 
         function createEbbinghausSchedules(baseText, sourceType, sourceId, originalDateStr = getYYYYMMDD(new Date())) {
             const cycles = [ {days: 1, name: '1일 뒤 복습'}, {days: 3, name: '3일 뒤 복습'}, {days: 7, name: '7일 뒤 복습'}, {days: 30, name: '한 달 뒤 복습'} ];
@@ -755,15 +774,25 @@
                 closeNoteModal();
             } catch(e) { alert("저장 오류!"); } finally { btn.innerHTML='저장'; btn.disabled=false; }
         }
-        function deleteNote(id) { if(confirm("완전히 삭제하시겠습니까?")) db.ref('studyNotes/'+id).remove(); }
+        function deleteNote(id) { 
+            if(confirm("완전히 삭제하시겠습니까?")) {
+                db.ref('studyNotes/'+id).remove(); 
+                allSchedules.forEach(s => { if(s.sourceId === id) db.ref('schedules/'+s.id).remove(); });
+            } 
+        }
 
         let ytPlayer = null; let currentPlayVocaPack = null; let currentCardIndex = 0;
         var tag = document.createElement('script'); tag.src = "https://www.youtube.com/iframe_api"; var firstScriptTag = document.getElementsByTagName('script')[0]; firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         
         function deleteVocaFolder(e, dateStr) {
             e.stopPropagation();
-            if(confirm(dateStr + ' 날짜에 생성된 [모든 단어장]을 삭제하시겠습니까?')) {
-                allVocaPacks.forEach(pack => { if(getYYYYMMDD(new Date(pack.timestamp)) === dateStr) { db.ref('vocaPacks/' + pack.id).remove(); } });
+            if(confirm(dateStr + ' 날짜에 생성된 [모든 단어장]을 삭제하시겠습니까? (연관된 복습 일정도 모두 삭제됩니다)')) {
+                allVocaPacks.forEach(pack => { 
+                    if(getYYYYMMDD(new Date(pack.timestamp)) === dateStr) { 
+                        db.ref('vocaPacks/' + pack.id).remove(); 
+                        allSchedules.forEach(s => { if(s.sourceId === pack.id) db.ref('schedules/'+s.id).remove(); });
+                    } 
+                });
             }
         }
 
@@ -772,7 +801,9 @@
             if(!confirm('이 단어를 단어장에서 완전히 삭제하시겠습니까?')) return;
             currentPlayVocaPack.words.splice(currentCardIndex, 1);
             if(currentPlayVocaPack.words.length === 0) {
-                db.ref('vocaPacks/' + currentPlayVocaPack.id).remove(); closeVocaPlayer(); alert('모든 단어가 삭제되어 단어장 팩이 자동으로 삭제되었습니다.');
+                db.ref('vocaPacks/' + currentPlayVocaPack.id).remove(); 
+                allSchedules.forEach(s => { if(s.sourceId === currentPlayVocaPack.id) db.ref('schedules/'+s.id).remove(); });
+                closeVocaPlayer(); alert('모든 단어가 삭제되어 단어장 팩과 연관된 복습 일정이 자동으로 삭제되었습니다.');
             } else {
                 db.ref('vocaPacks/' + currentPlayVocaPack.id + '/words').set(currentPlayVocaPack.words);
                 if(currentCardIndex >= currentPlayVocaPack.words.length) currentCardIndex = currentPlayVocaPack.words.length - 1;
@@ -781,16 +812,12 @@
         }
 
         function openManualVocaPackModal() {
-            document.getElementById('manualPackTitle').value = '';
-            document.getElementById('manualPackWord').value = '';
-            document.getElementById('manualPackMeaning').value = '';
+            document.getElementById('manualPackTitle').value = ''; document.getElementById('manualPackWord').value = ''; document.getElementById('manualPackMeaning').value = '';
             document.getElementById('manualVocaPackModal').classList.replace('hidden', 'flex');
         }
         function closeManualVocaPackModal() { document.getElementById('manualVocaPackModal').classList.replace('flex', 'hidden'); }
         function saveManualVocaPack() {
-            const title = document.getElementById('manualPackTitle').value.trim();
-            const word = document.getElementById('manualPackWord').value.trim();
-            const meaning = document.getElementById('manualPackMeaning').value.trim();
+            const title = document.getElementById('manualPackTitle').value.trim(); const word = document.getElementById('manualPackWord').value.trim(); const meaning = document.getElementById('manualPackMeaning').value.trim();
             if(!title || !word || !meaning) return alert("단어장 이름, 첫 단어, 단어 뜻을 모두 입력해주세요.");
 
             const wordsArr = [{ word: word, meaning: meaning, context_meaning: "직접 등록한 단어입니다.", nuance: "-", time: 0 }];
@@ -860,7 +887,12 @@
             const newRef = db.ref('vocaPacks').push();
             newRef.set(nData).then(() => { createEbbinghausSchedules('[단어복습] ' + title, 'voca', newRef.key, getYYYYMMDD(new Date())); closeVocaAddModal(); alert('단어장 생성 및 복습 달력 등록 완료!'); });
         }
-        function deleteVocaPack(id) { if(confirm('단어장을 삭제하시겠습니까?')) db.ref('vocaPacks/'+id).remove(); }
+        function deleteVocaPack(id) { 
+            if(confirm('단어장을 삭제하시겠습니까? (연관된 복습 일정도 모두 삭제됩니다)')) {
+                db.ref('vocaPacks/'+id).remove(); 
+                allSchedules.forEach(s => { if(s.sourceId === id) db.ref('schedules/'+s.id).remove(); });
+            } 
+        }
 
         function openVocaPlayer(packId) {
             currentPlayVocaPack = allVocaPacks.find(p => p.id === packId); currentCardIndex = 0;
@@ -870,7 +902,6 @@
             if(ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
             document.getElementById('youtubePlayer').outerHTML = '<div id="youtubePlayer"></div>';
             ytPlayer = new YT.Player('youtubePlayer', { height: '100%', width: '100%', videoId: ytId, playerVars: { 'controls': 1, 'playsinline': 1 } });
-            document.getElementById('vocaPlayerOverlay').classList.replace('flex', 'hidden'); // 수정
             document.getElementById('vocaPlayerOverlay').classList.replace('hidden', 'flex');
         }
 
