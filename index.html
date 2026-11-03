@@ -23,7 +23,7 @@
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .post-it { transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; display: flex; flex-direction: column; }
+        .post-it { transition: transform 0.2s ease, box-shadow 0.2s ease; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; }
         .post-it:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
         .post-it-img-area { height: 160px; background-color: white; border-bottom: 1px solid rgba(0,0,0,0.05); position: relative; }
         .post-it-img-area img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; cursor: zoom-in; }
@@ -258,6 +258,39 @@
 
     <!-- ================== 모달 모음 ================== -->
 
+    <!-- [신규] 오답노트 상세 보기 모달 -->
+    <div id="noteDetailModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[150] p-4 backdrop-blur-sm overflow-y-auto" onclick="closeNoteDetailModal(event)">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col my-8" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center p-5 border-b border-slate-100">
+                <div class="flex gap-3 items-center">
+                    <span id="detailSubject" class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">과목</span>
+                    <h3 class="text-xl font-bold text-slate-900" id="detailTitle">출처 및 번호</h3>
+                </div>
+                <button onclick="closeNoteDetailModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+                <div id="detailImageContainer" class="hidden flex justify-center mb-4 bg-slate-50 rounded-xl p-2 border border-slate-100">
+                    <img id="detailImage" src="" class="max-h-64 object-contain rounded-lg border border-slate-200 cursor-zoom-in shadow-sm" onclick="zoomImage(this.src)">
+                </div>
+                <div class="space-y-4">
+                    <div class="bg-rose-50/50 p-5 rounded-xl border border-rose-100">
+                        <p class="text-sm font-bold text-rose-600 mb-2"><i class="fa-solid fa-user-pen"></i> 나의 오개념 / 몰랐던 부분</p>
+                        <p id="detailMyNote" class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">내용</p>
+                    </div>
+                    <div class="bg-emerald-50/50 p-5 rounded-xl border border-emerald-100">
+                        <p class="text-sm font-bold text-emerald-600 mb-2"><i class="fa-solid fa-robot"></i> 올바른 해설 / AI 풀이</p>
+                        <p id="detailAiNote" class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">내용</p>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-100">
+                    <span id="detailKeyword" class="font-medium">키워드</span>
+                    <span id="detailDate">날짜</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기존 모달들 -->
     <div id="timetableModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
@@ -321,7 +354,7 @@
         </div>
     </div>
 
-    <div id="imageZoomModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[150] p-4" onclick="this.classList.replace('flex','hidden')"><img id="zoomedImage" src="" class="max-w-full max-h-full object-contain rounded cursor-zoom-out"></div>
+    <div id="imageZoomModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[150] p-4" onclick="this.classList.replace('flex','hidden')"><img id="zoomedImage" src="" class="max-w-full max-h-full object-contain rounded cursor-zoom-out" onclick="event.stopPropagation()"></div>
 
     <div id="vocaAddModal" class="fixed inset-0 bg-slate-900/70 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl p-8 relative">
@@ -735,6 +768,8 @@
             document.querySelectorAll('.note-sub-btn').forEach(btn => { btn.className = btn.dataset.sub===s ? "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white shadow-md transition" : "note-sub-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-500 border border-slate-200 transition"; });
             renderNotes(); 
         }
+
+        // [수정된 렌더링 함수] 카드를 누르면 상세 팝업 오픈
         function renderNotes() {
             const grid = document.getElementById('notesGrid'); const keyword = document.getElementById('noteSearchInput').value.toLowerCase();
             const filtered = allNotes.filter(n => {
@@ -746,12 +781,67 @@
             if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full text-center py-24 text-slate-400"><i class="fa-solid fa-ghost text-4xl mb-4 opacity-50"></i><p>등록된 오답노트가 없습니다.</p></div>'; return; }
             filtered.forEach(note => {
                 const dateStr = new Date(note.timestamp).toLocaleDateString();
-                const imgArea = note.imageUrl ? '<div class="post-it-img-area"><img src="'+note.imageUrl+'" onclick="zoomImage(\''+note.imageUrl+'\')"></div>' : '<div class="post-it-img-area bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-image text-slate-300 text-4xl"></i></div>';
-                const card = document.createElement('div'); card.className = 'post-it rounded-2xl border border-slate-200 shadow-sm bg-white h-full relative group';
-                card.innerHTML = imgArea + '<div class="p-5 flex flex-col flex-grow"><div class="flex justify-between items-start mb-2"><div class="flex gap-1.5 flex-wrap"><span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">' + note.subject + '</span><span class="text-[10px] text-slate-500 px-1 border border-slate-200 rounded">' + (note.difficulty||'⭐⭐⭐') + '</span></div><button onclick="deleteNote(\'' + note.id + '\')" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash-can"></i></button></div><h4 class="font-extrabold text-slate-800 text-base leading-tight mb-1 truncate">' + note.book + '</h4><p class="text-xs font-bold text-indigo-500 mb-3">' + note.num + '</p><div class="flex-grow space-y-3"><div><p class="text-[10px] font-bold text-rose-500 mb-0.5"><i class="fa-solid fa-user-pen"></i> 오개념</p><p class="text-xs text-slate-600 line-clamp-3 leading-relaxed">' + note.myNote + '</p></div><div class="bg-slate-50 p-2 rounded-lg border border-slate-100"><p class="text-[10px] font-bold text-emerald-600 mb-0.5"><i class="fa-solid fa-robot"></i> AI 해설</p><p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">' + note.aiNote + '</p></div></div><div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400"><span class="truncate pr-2"><i class="fa-solid fa-hashtag"></i> ' + (note.keyword||'없음') + '</span><span class="whitespace-nowrap">' + dateStr + '</span></div></div>';
+                const imgArea = note.imageUrl ? '<div class="post-it-img-area"><img src="'+note.imageUrl+'" onclick="event.stopPropagation(); zoomImage(\''+note.imageUrl+'\')"></div>' : '<div class="post-it-img-area bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-image text-slate-300 text-4xl"></i></div>';
+                
+                const card = document.createElement('div'); 
+                card.className = 'post-it rounded-2xl border border-slate-200 shadow-sm bg-white h-full relative group cursor-pointer';
+                card.onclick = () => openNoteDetailModal(note.id); // 카드 전체 클릭 시 모달 열기
+
+                card.innerHTML = imgArea + `<div class="p-5 flex flex-col flex-grow">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex gap-1.5 flex-wrap">
+                            <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">${note.subject}</span>
+                            <span class="text-[10px] text-slate-500 px-1 border border-slate-200 rounded">${note.difficulty||'⭐⭐⭐'}</span>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteNote('${note.id}')" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                    <h4 class="font-extrabold text-slate-800 text-base leading-tight mb-1 truncate">${note.book}</h4>
+                    <p class="text-xs font-bold text-indigo-500 mb-3">${note.num}</p>
+                    <div class="flex-grow space-y-3">
+                        <div>
+                            <p class="text-[10px] font-bold text-rose-500 mb-0.5"><i class="fa-solid fa-user-pen"></i> 오개념</p>
+                            <p class="text-xs text-slate-600 line-clamp-3 leading-relaxed">${note.myNote}</p>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <p class="text-[10px] font-bold text-emerald-600 mb-0.5"><i class="fa-solid fa-robot"></i> AI 해설</p>
+                            <p class="text-xs text-slate-700 line-clamp-2 leading-relaxed">${note.aiNote}</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400">
+                        <span class="truncate pr-2"><i class="fa-solid fa-hashtag"></i> ${note.keyword||'없음'}</span>
+                        <span class="whitespace-nowrap">${dateStr}</span>
+                    </div>
+                </div>`;
                 grid.appendChild(card);
             });
         }
+
+        // [신규] 상세 보기 모달 컨트롤 함수
+        function openNoteDetailModal(noteId) {
+            const note = allNotes.find(n => n.id === noteId);
+            if(!note) return;
+            document.getElementById('detailSubject').innerText = note.subject;
+            document.getElementById('detailTitle').innerText = note.book + ' - ' + note.num;
+            document.getElementById('detailMyNote').innerText = note.myNote;
+            document.getElementById('detailAiNote').innerText = note.aiNote;
+            document.getElementById('detailKeyword').innerHTML = '<i class="fa-solid fa-hashtag"></i> ' + (note.keyword || '키워드 없음');
+            document.getElementById('detailDate').innerText = new Date(note.timestamp).toLocaleDateString();
+            
+            const imgContainer = document.getElementById('detailImageContainer');
+            if(note.imageUrl) {
+                document.getElementById('detailImage').src = note.imageUrl;
+                imgContainer.classList.replace('hidden', 'flex');
+            } else {
+                imgContainer.classList.replace('flex', 'hidden');
+            }
+            
+            document.getElementById('noteDetailModal').classList.replace('hidden', 'flex');
+        }
+        function closeNoteDetailModal(e) {
+            if(e && e.target !== e.currentTarget) return; // 모달 바깥 영역 클릭 시에만 닫힘
+            document.getElementById('noteDetailModal').classList.replace('flex', 'hidden');
+        }
+
         function openNoteModal() { document.getElementById('noteModal').classList.replace('hidden', 'flex'); }
         function closeNoteModal() { document.getElementById('noteModal').classList.replace('flex', 'hidden'); }
         function previewImage(e) {
@@ -761,6 +851,7 @@
         }
         function removeImage() { currentNoteImg=null; document.getElementById('imageInput').value=''; document.getElementById('fileNameDisplay').innerText='선택된 파일 없음'; document.getElementById('imagePreviewContainer').classList.add('hidden'); document.getElementById('existingImageUrl').value=''; }
         function zoomImage(url) { document.getElementById('zoomedImage').src = url; document.getElementById('imageZoomModal').classList.replace('hidden', 'flex'); }
+        
         async function saveNote() {
             const book = document.getElementById('bookInput').value.trim(); const num = document.getElementById('numInput').value.trim(); const myN = document.getElementById('myNoteInput').value.trim();
             if(!book||!num||!myN) return alert("필수 항목을 입력해주세요.");
