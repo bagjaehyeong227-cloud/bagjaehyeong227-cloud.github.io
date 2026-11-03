@@ -112,7 +112,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col">
                     <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><i class="fa-solid fa-book-bookmark text-indigo-500"></i> 오늘의 개인 공부 추가</h3>
-                    <p class="text-xs text-slate-500 mb-4">직접 정한 개인 공부를 적어주세요. 완료 후 에빙하우스 복습 캘린더에 <strong class="text-indigo-600">자동 등록</strong>됩니다.</p>
+                    <p class="text-xs text-slate-500 mb-4">직접 정한 개인 공부를 적어주세요. 공부 완료 후 체크표시(✔️)를 해야 에빙하우스 복습 캘린더에 <strong class="text-indigo-600">자동 등록</strong>됩니다.</p>
                     <div class="flex gap-2">
                         <input type="text" id="personalStudyInput" onkeypress="if(event.key === 'Enter') addPersonalStudy()" placeholder="예: 수학의 정석 3단원 풀기" class="flex-grow border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
                         <button onclick="addPersonalStudy()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl transition shadow-md whitespace-nowrap">추가</button>
@@ -131,7 +131,7 @@
                         </div>
                     </div>
                     <button onclick="addTodaySchoolReview()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-6 rounded-xl transition shadow-md flex justify-center items-center gap-2">
-                        <i class="fa-solid fa-plus"></i> 선택한 과목 오늘 복습에 추가
+                        <i class="fa-solid fa-plus"></i> 선택한 과목 오늘 일정에 추가
                     </button>
                 </div>
             </div>
@@ -254,7 +254,7 @@
     <!-- SECTION 4: 환경 캠페인 -->
     <div id="sectionCampaign" class="hidden w-full"><main class="max-w-5xl mx-auto px-4 py-8 w-full text-center py-20"><h2 class="text-2xl font-bold text-emerald-600 mb-4">디지털 환경 캠페인 페이지</h2><p class="text-slate-500">기존 캠페인 통계 및 수료증 기능이 정상 작동하는 공간입니다.</p></main></div>
 
-    <!-- 모달 모음 생략 없음 (기존 동일) -->
+    <!-- 모달 모음 -->
     <div id="noteDetailModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[150] p-4 backdrop-blur-sm overflow-y-auto" onclick="closeNoteDetailModal(event)">
         <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col my-8" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center p-5 border-b border-slate-100">
@@ -458,8 +458,6 @@
         let allNotes = []; let allSchedules = []; let allVocaPacks = []; let allNoteFolders = {};
         let myTimetable = { 1:[], 2:[], 3:[], 4:[], 5:[] };
         let currentDate = new Date(); let realToday = new Date();
-        
-        // 현재 사용자가 선택하여 보고 있는 날짜를 기록하는 변수 (기본값: 오늘)
         let currentSelectedDateStr = getYYYYMMDD(realToday);
         window.targetNoteDateStr = null;
 
@@ -475,7 +473,6 @@
             if(document.getElementById('sectionNotes').classList.contains('flex')) renderNotes();
         });
 
-        // 실시간 데이터 변경 시 현재 선택된 날짜 유지 렌더링
         db.ref('schedules').on('value', (s) => { 
             allSchedules=[]; const d=s.val(); 
             if(d) for(let k in d) {
@@ -519,7 +516,6 @@
 
         function getYYYYMMDD(dObj) { return dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0') + '-' + String(dObj.getDate()).padStart(2,'0'); }
 
-        // 대시보드 상단 요약 업데이트 및 현재 선택 날짜의 상세 패널 유지
         function renderTodayDashboard() {
             const todayStr = getYYYYMMDD(realToday); const days = ['일', '월', '화', '수', '목', '금', '토'];
             document.getElementById('dashboardDateTitle').innerText = '오늘, ' + (realToday.getMonth()+1) + '월 ' + realToday.getDate() + '일 (' + days[realToday.getDay()] + ')';
@@ -528,7 +524,6 @@
             document.getElementById('todayReviewCount').innerText = todaysList.filter(s => s.type === 'review').length;
             document.getElementById('todaySchoolReviewCount').innerText = todaysList.filter(s => s.type === 'school_review').length;
             
-            // 오늘 날짜로 강제 리셋하지 않고 사용자가 마지막으로 선택한 날짜 패널 유지
             renderDayDetail(currentSelectedDateStr);
         }
 
@@ -568,8 +563,37 @@
         }
         function changeMonth(delta) { currentDate.setMonth(currentDate.getMonth() + delta); renderCalendar(); }
 
+        // [핵심 변경] 체크박스 완료 클릭 시에만 에빙하우스 복습 일정을 생성 / 체크 해제 시 자동 제거
         function toggleScheduleComplete(id, currentStatus) {
-            db.ref('schedules/' + id).update({ completed: !currentStatus });
+            const newStatus = !currentStatus;
+            db.ref('schedules/' + id).update({ completed: newStatus }).then(() => {
+                const item = allSchedules.find(s => s.id === id);
+                if(!item) return;
+
+                if(newStatus) {
+                    // 공부 완료(체크) 시 -> 복습 일정 자동 등록
+                    if(item.type === 'personal_study') {
+                        const alreadyHasReview = allSchedules.some(s => s.sourceId === id);
+                        if(!alreadyHasReview) {
+                            createEbbinghausSchedules('[개인공부] ' + item.text, 'personal', id, item.date);
+                        }
+                    } else if(item.type === 'school_review') {
+                        const alreadyHasReview = allSchedules.some(s => s.sourceId === id);
+                        if(!alreadyHasReview) {
+                            createEbbinghausSchedules('[학교복습] ' + item.text, 'school', id, item.date);
+                        }
+                    }
+                } else {
+                    // 미완료(체크 해제) 시 -> 연결된 복습 일정 취소
+                    if(item.type === 'personal_study' || item.type === 'school_review') {
+                        allSchedules.forEach(s => {
+                            if(s.sourceId === id) {
+                                db.ref('schedules/' + s.id).remove();
+                            }
+                        });
+                    }
+                }
+            });
         }
 
         function toggleFolder(id) {
@@ -584,9 +608,8 @@
             }
         }
 
-        // [상세 일정 패널 렌더링 - 선택된 날짜 변수 갱신]
         function renderDayDetail(dateStr) {
-            currentSelectedDateStr = dateStr; // 현재 선택된 날짜 저장 (체크 시 이동 방지)
+            currentSelectedDateStr = dateStr;
             const parts = dateStr.split('-'); 
             const selDateObj = new Date(dateStr);
             const daysArr = ['일', '월', '화', '수', '목', '금', '토'];
@@ -774,15 +797,15 @@
             }
         }
 
+        // [변경] 개인 공부 등록 시에는 복습 일정을 즉시 생성하지 않음
         function addPersonalStudy() {
             const text = document.getElementById('personalStudyInput').value.trim();
             if(!text) return;
             const todayStr = getYYYYMMDD(realToday);
             const ref = db.ref('schedules').push();
             ref.set({ date: todayStr, text: text, type: 'personal_study', completed: false, timestamp: Date.now() }).then(() => {
-                createEbbinghausSchedules('[개인공부] ' + text, 'personal', ref.key, todayStr);
                 document.getElementById('personalStudyInput').value = '';
-                alert('오늘 일정과 에빙하우스 복습 캘린더에 성공적으로 추가되었습니다!');
+                alert('오늘 공부 일정에 추가되었습니다! (체크표시로 완료 시 복습 달력에 자동 등록됩니다)');
             });
         }
 
@@ -799,6 +822,7 @@
             container.innerHTML = html;
         }
 
+        // [변경] 학교 공부 복습 등록 시에도 체크(완료)해야만 복습 일정으로 전환되도록 변경
         function addTodaySchoolReview() {
             const checkboxes = document.querySelectorAll('.tt-checkbox:checked');
             if(checkboxes.length === 0) return alert('선택된 과목이 없습니다.');
@@ -810,11 +834,9 @@
                 if(pageInput) finalSubjectText += ' (' + pageInput + ')';
 
                 const ref = db.ref('schedules').push();
-                ref.set({ date: todayStr, text: finalSubjectText, type: 'school_review', completed: false, timestamp: Date.now() }).then(() => {
-                    createEbbinghausSchedules('[학교복습] ' + finalSubjectText, 'school', ref.key, todayStr);
-                });
+                ref.set({ date: todayStr, text: finalSubjectText, type: 'school_review', completed: false, timestamp: Date.now() });
             });
-            alert('선택한 ' + checkboxes.length + '개 과목이 당일 및 복습 달력에 추가되었습니다!');
+            alert('선택한 ' + checkboxes.length + '개 과목이 추가되었습니다! (체크표시로 완료 시 복습 달력에 자동 등록됩니다)');
         }
 
         function openTimetableModal() {
