@@ -179,7 +179,7 @@
                             <div id="schoolScheduleList" class="space-y-2"></div>
                         </div>
 
-                        <!-- 에빙하우스 복습 (체크박스 기능 탑재) -->
+                        <!-- 에빙하우스 복습 -->
                         <div class="pt-4 border-t border-slate-100">
                             <span class="text-xs font-bold text-emerald-600 mb-2 block"><i class="fa-solid fa-rotate-right"></i> 자동 복습 목록 (클릭하여 폴더 열기)</span>
                             <div id="reviewScheduleList" class="space-y-2"></div>
@@ -254,9 +254,7 @@
     <!-- SECTION 4: 환경 캠페인 -->
     <div id="sectionCampaign" class="hidden w-full"><main class="max-w-5xl mx-auto px-4 py-8 w-full text-center py-20"><h2 class="text-2xl font-bold text-emerald-600 mb-4">디지털 환경 캠페인 페이지</h2><p class="text-slate-500">기존 캠페인 통계 및 수료증 기능이 정상 작동하는 공간입니다.</p></main></div>
 
-    <!-- ================== 모달 모음 ================== -->
-
-    <!-- 오답노트 상세 보기 모달 -->
+    <!-- 모달 모음 생략 없음 (기존 동일) -->
     <div id="noteDetailModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[150] p-4 backdrop-blur-sm overflow-y-auto" onclick="closeNoteDetailModal(event)">
         <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative flex flex-col my-8" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center p-5 border-b border-slate-100">
@@ -288,7 +286,6 @@
         </div>
     </div>
 
-    <!-- 일반 모달 모음 -->
     <div id="timetableModal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[110] p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
             <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-3">
@@ -461,6 +458,9 @@
         let allNotes = []; let allSchedules = []; let allVocaPacks = []; let allNoteFolders = {};
         let myTimetable = { 1:[], 2:[], 3:[], 4:[], 5:[] };
         let currentDate = new Date(); let realToday = new Date();
+        
+        // 현재 사용자가 선택하여 보고 있는 날짜를 기록하는 변수 (기본값: 오늘)
+        let currentSelectedDateStr = getYYYYMMDD(realToday);
         window.targetNoteDateStr = null;
 
         db.ref('studyNotes').on('value', (s) => { 
@@ -475,6 +475,7 @@
             if(document.getElementById('sectionNotes').classList.contains('flex')) renderNotes();
         });
 
+        // 실시간 데이터 변경 시 현재 선택된 날짜 유지 렌더링
         db.ref('schedules').on('value', (s) => { 
             allSchedules=[]; const d=s.val(); 
             if(d) for(let k in d) {
@@ -482,7 +483,8 @@
                 if(item.completed === undefined) item.completed = false;
                 allSchedules.push(item);
             }
-            renderCalendar(); renderTodayDashboard(); 
+            renderCalendar(); 
+            renderTodayDashboard(); 
         });
 
         db.ref('vocaPacks').on('value', (s) => { allVocaPacks=[]; const d=s.val(); if(d) for(let k in d) allVocaPacks.push({id:k,...d[k]}); allVocaPacks.sort((a,b)=>b.timestamp-a.timestamp); if(document.getElementById('sectionVoca').classList.contains('block')) renderVocaPacks(); });
@@ -517,6 +519,7 @@
 
         function getYYYYMMDD(dObj) { return dObj.getFullYear() + '-' + String(dObj.getMonth()+1).padStart(2,'0') + '-' + String(dObj.getDate()).padStart(2,'0'); }
 
+        // 대시보드 상단 요약 업데이트 및 현재 선택 날짜의 상세 패널 유지
         function renderTodayDashboard() {
             const todayStr = getYYYYMMDD(realToday); const days = ['일', '월', '화', '수', '목', '금', '토'];
             document.getElementById('dashboardDateTitle').innerText = '오늘, ' + (realToday.getMonth()+1) + '월 ' + realToday.getDate() + '일 (' + days[realToday.getDay()] + ')';
@@ -524,7 +527,9 @@
             document.getElementById('todayTaskCount').innerText = todaysList.filter(s => s.type === 'normal' || s.type === 'personal_study').length;
             document.getElementById('todayReviewCount').innerText = todaysList.filter(s => s.type === 'review').length;
             document.getElementById('todaySchoolReviewCount').innerText = todaysList.filter(s => s.type === 'school_review').length;
-            renderDayDetail(todayStr);
+            
+            // 오늘 날짜로 강제 리셋하지 않고 사용자가 마지막으로 선택한 날짜 패널 유지
+            renderDayDetail(currentSelectedDateStr);
         }
 
         function renderCalendar() {
@@ -579,8 +584,9 @@
             }
         }
 
-        // [상세 일정 패널 렌더링]
+        // [상세 일정 패널 렌더링 - 선택된 날짜 변수 갱신]
         function renderDayDetail(dateStr) {
+            currentSelectedDateStr = dateStr; // 현재 선택된 날짜 저장 (체크 시 이동 방지)
             const parts = dateStr.split('-'); 
             const selDateObj = new Date(dateStr);
             const daysArr = ['일', '월', '화', '수', '목', '금', '토'];
@@ -606,7 +612,7 @@
                 </div>`; 
             });
 
-            // 2. 개인 공부 (체크박스 탑재)
+            // 2. 개인 공부
             const pContainer = document.getElementById('personalScheduleList');
             pContainer.innerHTML = pList.length===0 ? '<p class="text-[11px] text-slate-400 italic">오늘 할 개인 공부가 없습니다.</p>' : '';
             pList.forEach(item => { 
@@ -620,7 +626,7 @@
                 </div>`; 
             });
 
-            // 3. 학교 공부 복습 (체크박스 탑재)
+            // 3. 학교 공부 복습
             const sContainer = document.getElementById('schoolScheduleList');
             sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
             sList.forEach(item => { 
@@ -634,7 +640,7 @@
                 </div>`; 
             });
 
-            // 4. 자동 복습 목록 (복습 항목에도 체크박스 적용 완료)
+            // 4. 자동 복습 목록
             const rContainer = document.getElementById('reviewScheduleList');
             if(rList.length === 0) { 
                 rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; 
@@ -718,7 +724,7 @@
                 rContainer.innerHTML = rHtml;
             }
 
-            // 5. 이번 주에 못한 것 (토요일 전용 - 일반 일정 제외, 개인 공부 & 학교 공부 복습만)
+            // 5. 이번 주에 못한 것 (토요일 전용)
             const missedSection = document.getElementById('missedScheduleSection');
             const missedList = document.getElementById('missedScheduleList');
             missedList.innerHTML = '';
