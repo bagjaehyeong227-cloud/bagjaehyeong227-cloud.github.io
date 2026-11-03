@@ -124,7 +124,7 @@
                         <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2"><i class="fa-solid fa-school text-blue-500"></i> 오늘 학교 공부 복습</h3>
                         <button onclick="openTimetableModal()" class="text-blue-600 text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition shadow-sm"><i class="fa-solid fa-gear"></i> 시간표 설정</button>
                     </div>
-                    <p class="text-xs text-slate-500 mb-3">복습할 과목만 체크(✔️)하여 오늘 달력에 추가하세요.</p>
+                    <p class="text-xs text-slate-500 mb-3">복습할 과목 체크(✔️) 후 세부 페이지를 기록하여 달력에 추가하세요.</p>
                     <div class="flex-grow bg-slate-50 p-3 rounded-xl border border-slate-100 mb-3 overflow-y-auto">
                         <div id="todayTimetableDisplay" class="flex flex-wrap gap-2 items-center">
                             <span class="text-xs text-slate-400">시간표 로딩중...</span>
@@ -496,7 +496,6 @@
                 const dateStr = getYYYYMMDD(new Date(year, month, i));
                 const daySchedules = allSchedules.filter(s => s.date === dateStr);
                 
-                // 달력 내 작은 텍스트 추가 렌더링
                 let tasksHtml = '<div class="flex flex-col gap-[2px] mt-1 overflow-y-auto hide-scroll w-full flex-grow">';
                 daySchedules.slice(0, 3).forEach(s => {
                     let bgClass = 'bg-slate-100 text-slate-600';
@@ -567,7 +566,6 @@
             sContainer.innerHTML = sList.length===0 ? '<p class="text-[11px] text-slate-400 italic">등록된 오늘 학교 복습이 없습니다.</p>' : '';
             sList.forEach(item => { sContainer.innerHTML += '<div class="flex justify-between items-center bg-blue-50 p-2.5 rounded-lg border border-blue-100 shadow-sm mb-2"><span class="text-sm font-bold text-blue-900"><i class="fa-solid fa-check-circle text-blue-400 mr-1.5"></i> ' + item.text + '</span><button onclick="deleteSchedule(\'' + item.id + '\')" class="text-blue-300 hover:text-blue-500"><i class="fa-solid fa-xmark"></i></button></div>'; });
 
-            // 자동 복습 목록 렌더링
             const rContainer = document.getElementById('reviewScheduleList');
             if(rList.length === 0) { rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; } else {
                 const grouped = {};
@@ -661,11 +659,12 @@
         function renderTodayTimetable() {
             const dayOfWeek = realToday.getDay(); const todaySubjects = myTimetable[dayOfWeek] || [];
             const container = document.getElementById('todayTimetableDisplay');
-            if (todaySubjects.length === 0) { container.innerHTML = '<span class="text-xs text-slate-400">주말이거나 설정된 시간표가 없습니다.</span>'; return; }
+            if (todaySubjects.length === 0) { container.innerHTML = '<span class="text-xs text-slate-400">주말이거나 설정된 시간표가 없습니다.</span>'; container.className="flex flex-wrap gap-2 items-center"; return; }
+            container.className = "grid grid-cols-1 sm:grid-cols-2 gap-2 w-full";
             let html = '';
             todaySubjects.forEach((sub, idx) => {
                 const val = (idx+1) + '교시: ' + sub;
-                html += '<label class="cursor-pointer flex items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-xl text-sm font-bold shadow-sm hover:border-blue-400 transition"><input type="checkbox" value="' + val + '" class="tt-checkbox w-5 h-5 text-blue-600 bg-gray-100 rounded focus:ring-blue-500" checked><span><span class="text-blue-400 text-xs">' + (idx+1) + '교시</span> ' + sub + '</span></label>';
+                html += '<div class="flex flex-col xl:flex-row items-start xl:items-center gap-2 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-sm hover:border-blue-400 transition justify-between"><label class="cursor-pointer flex items-center gap-2 text-sm font-bold whitespace-nowrap"><input type="checkbox" value="' + val + '" id="tt_cb_' + idx + '" class="tt-checkbox w-5 h-5 text-blue-600 bg-gray-100 rounded focus:ring-blue-500" checked><span><span class="text-blue-400 text-xs">' + (idx+1) + '교시</span> ' + sub + '</span></label><input type="text" id="tt_input_' + idx + '" placeholder="예: 23p~25p" class="w-full xl:w-28 border border-slate-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-500"></div>';
             });
             container.innerHTML = html;
         }
@@ -675,9 +674,14 @@
             if(checkboxes.length === 0) return alert('선택된 과목이 없습니다.');
             const todayStr = getYYYYMMDD(realToday);
             checkboxes.forEach(cb => { 
+                const idx = cb.id.split('_').pop();
+                const pageInput = document.getElementById('tt_input_' + idx).value.trim();
+                let finalSubjectText = cb.value;
+                if(pageInput) finalSubjectText += ' (' + pageInput + ')';
+
                 const ref = db.ref('schedules').push();
-                ref.set({ date: todayStr, text: cb.value, type: 'school_review', timestamp: Date.now() }).then(() => {
-                    createEbbinghausSchedules('[학교복습] ' + cb.value, 'school', ref.key, todayStr);
+                ref.set({ date: todayStr, text: finalSubjectText, type: 'school_review', timestamp: Date.now() }).then(() => {
+                    createEbbinghausSchedules('[학교복습] ' + finalSubjectText, 'school', ref.key, todayStr);
                 });
             });
             alert('선택한 ' + checkboxes.length + '개 과목이 당일 및 복습 달력에 추가되었습니다!');
