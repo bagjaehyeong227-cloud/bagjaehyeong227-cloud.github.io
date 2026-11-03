@@ -42,7 +42,7 @@
         .cal-day-num { font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 2px; }
         
         .task-checkbox {
-            appearance: none; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 4px; cursor: pointer; position: relative; transition: all 0.2s;
+            appearance: none; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 4px; cursor: pointer; position: relative; transition: all 0.2s; flex-shrink: 0;
         }
         .task-checkbox:checked {
             background-color: #4f46e5; border-color: #4f46e5;
@@ -179,7 +179,7 @@
                             <div id="schoolScheduleList" class="space-y-2"></div>
                         </div>
 
-                        <!-- 에빙하우스 복습 (세부 3종 폴더 탑재) -->
+                        <!-- 에빙하우스 복습 (체크박스 기능 탑재) -->
                         <div class="pt-4 border-t border-slate-100">
                             <span class="text-xs font-bold text-emerald-600 mb-2 block"><i class="fa-solid fa-rotate-right"></i> 자동 복습 목록 (클릭하여 폴더 열기)</span>
                             <div id="reviewScheduleList" class="space-y-2"></div>
@@ -196,7 +196,7 @@
         </main>
     </div>
 
-    <!-- SECTION 2: AI 스마트 오답노트 (날짜별 폴더 적용) -->
+    <!-- SECTION 2: AI 스마트 오답노트 -->
     <div id="sectionNotes" class="hidden w-full bg-slate-50 flex-grow pb-12">
         <div class="bg-white border-b border-slate-200 pt-6 pb-2 px-4 shadow-sm sticky top-16 z-30">
             <div class="max-w-6xl mx-auto space-y-4">
@@ -546,7 +546,8 @@
                     if(s.type === 'review') bgClass = 'bg-emerald-100 text-emerald-700';
                     if(s.type === 'personal_study') bgClass = 'bg-indigo-100 text-indigo-700';
                     
-                    tasksHtml += `<div class="text-[9px] font-medium leading-tight truncate px-1 py-[2px] rounded ${bgClass}">${s.text}</div>`;
+                    const strikeClass = s.completed ? 'line-through opacity-60' : '';
+                    tasksHtml += `<div class="text-[9px] font-medium leading-tight truncate px-1 py-[2px] rounded ${bgClass} ${strikeClass}">${s.text}</div>`;
                 });
                 if(daySchedules.length > 3) {
                     tasksHtml += `<div class="text-[8px] font-bold text-slate-400 text-center mt-[1px]">+${daySchedules.length - 3}개</div>`;
@@ -633,7 +634,7 @@
                 </div>`; 
             });
 
-            // 4. 자동 복습 목록 (날짜별 폴더 내부 -> [개인공부, 오답노트, 학교공부복습] 3개 하위 폴더로 분리)
+            // 4. 자동 복습 목록 (복습 항목에도 체크박스 적용 완료)
             const rContainer = document.getElementById('reviewScheduleList');
             if(rList.length === 0) { 
                 rContainer.innerHTML = '<p class="text-[11px] text-slate-400 italic">복습 일정이 없습니다.</p>'; 
@@ -654,12 +655,16 @@
                         let html = '';
                         subList.forEach(item => {
                             let badge = 'bg-emerald-100 text-emerald-700';
+                            const textStyle = item.completed ? 'line-through text-slate-400' : colorClass;
                             html += `<div class="bg-white p-2.5 rounded border border-slate-100 relative mb-1.5 shadow-sm">
                                 <div class="flex items-center justify-between mb-1">
                                     <span class="${badge} px-1.5 py-0.5 rounded text-[10px] font-bold">${item.cycleText}</span>
                                     <button onclick="deleteSchedule('${item.id}'); event.stopPropagation();" class="text-slate-300 hover:text-red-500 text-xs px-1.5 py-0.5 rounded transition" title="이 복습 일정 삭제"><i class="fa-solid fa-trash-can"></i> 삭제</button>
                                 </div>
-                                <span class="text-xs font-bold ${colorClass} block">${item.text}</span>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="task-checkbox" ${item.completed ? 'checked' : ''} onchange="toggleScheduleComplete('${item.id}', ${item.completed}); event.stopPropagation();">
+                                    <span class="text-xs font-bold ${textStyle} transition-all">${item.text}</span>
+                                </label>
                             </div>`;
                         });
                         return html;
@@ -724,7 +729,6 @@
                 for(let i = 1; i <= 5; i++) {
                     let d = new Date(selDateObj); d.setDate(d.getDate() - (selDateObj.getDay() - i)); weekDates.push(getYYYYMMDD(d));
                 }
-                // 일반 일정(normal) 제외, personal_study 및 school_review 중 미완료 항목만 캡처
                 const missedTasks = allSchedules.filter(s => weekDates.includes(s.date) && (s.type === 'personal_study' || s.type === 'school_review') && s.completed === false);
 
                 if(missedTasks.length === 0) {
@@ -839,11 +843,10 @@
             const cycles = [ {days: 1, name: '1일 뒤 복습'}, {days: 3, name: '3일 뒤 복습'}, {days: 7, name: '7일 뒤 복습'}, {days: 30, name: '한 달 뒤 복습'} ];
             cycles.forEach(c => {
                 let targetDate = new Date(originalDateStr); targetDate.setDate(targetDate.getDate() + c.days);
-                db.ref('schedules').push({ date: getYYYYMMDD(targetDate), text: baseText, type: 'review', cycleText: c.name, sourceType: sourceType, sourceId: sourceId, originalDate: originalDateStr, timestamp: Date.now() });
+                db.ref('schedules').push({ date: getYYYYMMDD(targetDate), text: baseText, type: 'review', completed: false, cycleText: c.name, sourceType: sourceType, sourceId: sourceId, originalDate: originalDateStr, timestamp: Date.now() });
             });
         }
 
-        // [오답노트 전용 복습 일정 통합 업데이트 (하루 1건으로 단순화)]
         function syncNoteGroupReview(dateStr) {
             const notesOnDate = allNotes.filter(n => getYYYYMMDD(new Date(n.timestamp)) === dateStr);
             const count = notesOnDate.length;
@@ -861,7 +864,7 @@
                     const cycles = [ {days: 1, name: '1일 뒤 복습'}, {days: 3, name: '3일 뒤 복습'}, {days: 7, name: '7일 뒤 복습'}, {days: 30, name: '한 달 뒤 복습'} ];
                     cycles.forEach(c => {
                         let targetDate = new Date(dateStr); targetDate.setDate(targetDate.getDate() + c.days);
-                        db.ref('schedules').push({ date: getYYYYMMDD(targetDate), text: text, type: 'review', cycleText: c.name, sourceType: 'note_group', sourceId: 'group_' + dateStr, originalDate: dateStr, timestamp: Date.now() });
+                        db.ref('schedules').push({ date: getYYYYMMDD(targetDate), text: text, type: 'review', completed: false, cycleText: c.name, sourceType: 'note_group', sourceId: 'group_' + dateStr, originalDate: dateStr, timestamp: Date.now() });
                     });
                 }
             }
@@ -880,7 +883,6 @@
             renderNotes(); 
         }
 
-        // [오답노트 탭 날짜별 폴더화 렌더링 & 이름 수정 기능]
         function renderNotes() {
             const container = document.getElementById('notesFolderContainer'); 
             const keyword = document.getElementById('noteSearchInput').value.toLowerCase();
@@ -968,7 +970,6 @@
             });
         }
 
-        // 폴더 이름 변경 함수
         function editNoteFolderTitle(dateStr) {
             const currentTitle = (allNoteFolders[dateStr] && allNoteFolders[dateStr].title) ? allNoteFolders[dateStr].title : (dateStr + ' 오답노트');
             const newTitle = prompt('오답노트 폴더 이름을 변경하세요:', currentTitle);
@@ -980,7 +981,6 @@
             }
         }
 
-        // 오답노트 날짜 폴더 통째 삭제
         function deleteNoteFolder(dateStr) {
             if(confirm(dateStr + ' 날짜에 작성된 모든 오답노트를 삭제하시겠습니까? (연관된 복습 일정도 함께 삭제됩니다)')) {
                 allNotes.forEach(n => {
@@ -1018,7 +1018,6 @@
             document.getElementById('noteDetailModal').classList.replace('flex', 'hidden');
         }
 
-        // [개선] 작성 창 열 때 완전히 비워주는 Clean State 적용
         function openNoteModal(targetDateStr = null) { 
             window.targetNoteDateStr = targetDateStr;
             document.getElementById('noteId').value = '';
@@ -1077,7 +1076,7 @@
                 };
                 
                 await db.ref('studyNotes').push(nData);
-                syncNoteGroupReview(noteDateStr); // 오답 복습 1건으로 통일 업데이트
+                syncNoteGroupReview(noteDateStr);
                 closeNoteModal();
             } catch(e) { alert("저장 오류!"); } finally { btn.innerHTML='저장'; btn.disabled=false; }
         }
